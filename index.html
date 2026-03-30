@@ -5,7 +5,7 @@
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <title>Générateur de Graphe d'État - LaTeX</title>
 
-        <!-- Tailwind CSS pour le style de l'interface -->
+        <!-- Tailwind CSS -->
         <script src="https://cdn.tailwindcss.com"></script>
 
         <!-- KaTeX pour le rendu LaTeX -->
@@ -15,11 +15,10 @@
         />
         <script src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
 
-        <!-- html-to-image pour une capture PNG parfaite (remplace html2canvas) -->
+        <!-- html-to-image pour une capture PNG -->
         <script src="https://cdnjs.cloudflare.com/ajax/libs/html-to-image/1.11.11/html-to-image.min.js"></script>
 
         <style>
-            /* Styles spécifiques pour le canevas interactif */
             #canvas-container {
                 background-image: radial-gradient(#cbd5e1 1px, transparent 1px);
                 background-size: 20px 20px;
@@ -35,104 +34,67 @@
                 justify-content: center;
                 text-align: center;
                 line-height: 1.2;
-                padding: 5px;
-                box-sizing: border-box;
-                word-wrap: break-word;
                 position: absolute;
                 transform: translate(-50%, -50%);
                 cursor: grab;
                 user-select: none;
-                box-shadow:
-                    0 4px 6px -1px rgb(0 0 0 / 0.1),
-                    0 2px 4px -2px rgb(0 0 0 / 0.1);
+                box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
                 transition:
                     box-shadow 0.2s,
                     transform 0.1s;
                 pointer-events: auto;
                 z-index: 10;
             }
-            .node-normal {
-                width: 90px;
-                height: 90px;
-            }
             .node-initial {
                 width: 8px;
                 height: 8px;
                 background-color: #475569;
                 border: none;
-                box-shadow: none;
             }
-            /* Zone de clic élargie pour attraper le petit point facilement */
             .node-initial::after {
                 content: "";
                 position: absolute;
                 width: 40px;
                 height: 40px;
                 border-radius: 50%;
-                background: transparent;
-                transition: background 0.2s;
-            }
-            .node-initial:hover::after {
-                background: rgba(99, 102, 241, 0.1);
-            }
-            .node:active {
-                cursor: grabbing;
             }
             .edge-label {
                 position: absolute;
                 transform: translate(-50%, -50%);
-                pointer-events: auto; /* Rend le label cliquable */
+                pointer-events: auto;
                 cursor: grab;
                 z-index: 15;
-                background-color: #ffffff !important; /* FOND BLANC OPAQUE */
+                background-color: #ffffff !important;
                 border: 1px solid #e2e8f0;
                 box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-                user-select: none;
-                white-space: nowrap; /* EMPÊCHE LE RETOUR À LA LIGNE */
-                width: max-content; /* ADAPTE LA BOÎTE EXACTEMENT AU TEXTE */
-            }
-            .edge-label:hover {
-                border-color: #4f46e5;
-                box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.2);
-            }
-            .edge-label:active {
-                cursor: grabbing;
+                white-space: nowrap;
+                width: max-content;
+                padding: 2px 6px;
+                border-radius: 4px;
             }
             svg {
-                pointer-events: none; /* Ignore les clics sur le fond transparent du SVG */
+                pointer-events: none;
             }
-
-            /* Amélioration visuelle pour attraper les flèches */
             .edge-group {
                 cursor: grab;
             }
-            .edge-group:active {
-                cursor: grabbing;
-            }
             .edge-group:hover .visible-edge {
-                stroke: #4f46e5; /* Devient bleu indigo au survol */
+                stroke: #4f46e5;
                 stroke-width: 3.5px;
             }
-
-            /* Amélioration du rendu des polices pour l'export HD */
             body {
                 -webkit-font-smoothing: antialiased;
-                -moz-osx-font-smoothing: grayscale;
                 text-rendering: optimizeLegibility;
             }
-
-            /* Masquer la barre de défilement du calque de coloration (elle est gérée par le textarea) */
             #highlight-bg::-webkit-scrollbar {
                 display: none;
             }
             #highlight-bg {
-                -ms-overflow-style: none;
                 scrollbar-width: none;
             }
         </style>
     </head>
     <body class="h-screen flex flex-col bg-slate-50 text-slate-800 font-sans">
-        <!-- En-tête -->
         <header
             class="bg-indigo-600 text-white p-4 shadow-md flex justify-between items-center z-20"
         >
@@ -157,22 +119,73 @@
                     </svg>
                     Générateur de Graphe d'État LaTeX
                 </h1>
-                <p class="text-indigo-200 text-sm mt-1">
-                    Éditez le code, glissez les bulles/flèches à droite.
-                </p>
             </div>
 
-            <!-- Outils de Sauvegarde et Nav -->
             <div class="flex gap-3 items-center">
-                <!-- Indicateur de sauvegarde silencieuse -->
                 <span
                     id="save-indicator"
                     class="text-indigo-200 text-sm font-medium opacity-0 transition-opacity duration-300 pointer-events-none"
+                    >✔ Sauvegardé</span
                 >
-                    ✔ Sauvegardé
-                </span>
 
-                <!-- Lien vers la documentation (Modifié pour ouvrir la modale) -->
+                <button
+                    onclick="resetLayout()"
+                    title="Réorganiser proprement le graphe"
+                    class="bg-indigo-700 hover:bg-indigo-500 text-white px-4 py-2 rounded shadow text-sm font-semibold transition flex items-center gap-2 border border-indigo-500"
+                >
+                    <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="16"
+                        height="16"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                    >
+                        <path
+                            d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"
+                        />
+                        <path d="M3 3v5h5" />
+                        <path
+                            d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"
+                        />
+                        <path d="M16 16h5v5" />
+                    </svg>
+                    Réorganiser
+                </button>
+
+                <button
+                    onclick="toggleShortcuts(true)"
+                    title="Modifier les raccourcis clavier"
+                    class="bg-indigo-700 hover:bg-indigo-500 text-white px-4 py-2 rounded shadow text-sm font-semibold transition flex items-center gap-2 border border-indigo-500"
+                >
+                    <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="16"
+                        height="16"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                    >
+                        <path d="M12 20a8 8 0 1 0 0-16 8 8 0 0 0 0 16Z" />
+                        <path d="M12 14a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z" />
+                        <path d="M12 2v2" />
+                        <path d="M12 20v2" />
+                        <path d="m4.93 4.93 1.41 1.41" />
+                        <path d="m17.66 17.66 1.41 1.41" />
+                        <path d="M2 12h2" />
+                        <path d="M20 12h2" />
+                        <path d="m6.34 17.66-1.41 1.41" />
+                        <path d="m19.07 4.93-1.41 1.41" />
+                    </svg>
+                    Raccourcis
+                </button>
+
                 <button
                     onclick="toggleDoc(true)"
                     title="Ouvrir le guide d'utilisation"
@@ -227,7 +240,6 @@
                     <select
                         id="export-bg"
                         class="bg-transparent text-white pl-3 pr-2 py-2 text-sm font-semibold outline-none cursor-pointer border-r border-indigo-600 hover:bg-indigo-700 transition rounded-l"
-                        title="Couleur de fond de l'export"
                     >
                         <option value="#ffffff" class="text-slate-800">
                             ⬜ Blanc
@@ -269,11 +281,10 @@
             </div>
         </header>
 
-        <!-- Zone principale -->
         <main class="flex-1 flex overflow-hidden">
             <!-- Panneau de gauche : Éditeur -->
             <div
-                class="w-1/3 min-w-[300px] border-r border-slate-300 bg-white flex flex-col shadow-lg z-10"
+                class="w-1/3 min-w-[350px] border-r border-slate-300 bg-white flex flex-col shadow-lg z-10"
             >
                 <div
                     class="bg-slate-100 p-2 border-b border-slate-200 text-xs font-semibold text-slate-500 uppercase tracking-wider flex justify-between"
@@ -286,15 +297,12 @@
                 <div
                     class="relative flex-1 bg-slate-50 overflow-hidden border-none"
                 >
-                    <!-- Arrière-plan pour la coloration syntaxique -->
                     <pre
                         id="highlight-bg"
                         class="absolute inset-0 p-4 m-0 w-full h-full font-mono text-sm leading-normal whitespace-pre-wrap break-words pointer-events-none text-slate-800 z-0 overflow-auto"
                         aria-hidden="true"
                         style="tab-size: 4"
                     ></pre>
-
-                    <!-- Éditeur de texte transparent superposé -->
                     <textarea
                         id="editor"
                         spellcheck="false"
@@ -305,6 +313,7 @@
 // Transitions  : Source -> Cible : $LaTeX$
 // État initial : [*] -> Cible
 // Couleurs     : color NomEtat #hexadecimal
+// Sortie état  : output Etat : $Sortie$
 
 color Idle #a7f3d0
 color Done #fecaca
@@ -324,13 +333,11 @@ Done -> Done : $\overline{GO}$
 
             <!-- Panneau de droite : Canevas -->
             <div id="canvas-container" class="flex-1 relative overflow-hidden">
-                <!-- Le wrapper qui bouge avec le "Pan" -->
                 <div
                     id="canvas-content"
                     class="absolute inset-0 w-full h-full transform-gpu"
                     style="transform-origin: 0 0"
                 >
-                    <!-- Couche SVG pour les flèches -->
                     <svg
                         id="edges"
                         class="absolute inset-0 w-full h-full overflow-visible"
@@ -353,14 +360,10 @@ Done -> Done : $\overline{GO}$
                         </defs>
                         <g id="edges-group"></g>
                     </svg>
-
-                    <!-- Couche pour les labels LaTeX -->
                     <div
                         id="labels"
                         class="absolute inset-0 w-full h-full pointer-events-none"
                     ></div>
-
-                    <!-- Couche pour les nœuds (états) -->
                     <div
                         id="nodes"
                         class="absolute inset-0 w-full h-full pointer-events-none"
@@ -369,7 +372,7 @@ Done -> Done : $\overline{GO}$
             </div>
         </main>
 
-        <!-- Fenêtre Modale de Documentation -->
+        <!-- Modales -->
         <div
             id="doc-modal"
             class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4 transition-opacity duration-300 opacity-0"
@@ -378,409 +381,308 @@ Done -> Done : $\overline{GO}$
                 id="doc-container"
                 class="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col transform scale-95 transition-transform duration-300"
             >
-                <!-- Header de la modale -->
                 <div
                     class="flex justify-between items-center p-6 border-b border-slate-200 bg-slate-50 rounded-t-xl"
                 >
                     <h2
                         class="text-2xl font-bold text-slate-800 flex items-center gap-2"
                     >
-                        <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            width="28"
-                            height="28"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            stroke-width="2"
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                            class="text-indigo-600"
-                        >
-                            <path
-                                d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"
-                            />
-                            <path
-                                d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"
-                            />
-                        </svg>
-                        Guide d'utilisation
+                        Documentation
                     </h2>
                     <button
                         onclick="toggleDoc(false)"
-                        class="text-slate-400 hover:text-slate-600 transition bg-slate-200 hover:bg-slate-300 p-2 rounded-full"
+                        class="p-2 rounded-full hover:bg-slate-200 transition"
                     >
-                        <svg
-                            width="20"
-                            height="20"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            stroke-width="2"
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                        >
-                            <line x1="18" y1="6" x2="6" y2="18"></line>
-                            <line x1="6" y1="6" x2="18" y2="18"></line>
-                        </svg>
+                        ✕
                     </button>
                 </div>
-
-                <!-- Contenu de la modale -->
                 <div
-                    class="p-6 overflow-y-auto flex-1 text-slate-700 space-y-8"
+                    class="p-6 overflow-y-auto flex-1 text-slate-700 space-y-4"
                 >
-                    <p class="text-lg">
-                        Cet outil allie la rapidité d'écriture du code source
-                        (façon Graphviz/Mermaid) avec la flexibilité d'un outil
-                        de dessin interactif, tout en produisant une typographie
-                        mathématique parfaite grâce à LaTeX.
-                    </p>
+                    <h3 class="font-bold text-lg">Syntaxe</h3>
+                    <p><code>Source -> Cible : $LaTeX$</code> : Transition</p>
+                    <p><code>[*] -> Etat : $LaTeX$</code> : État initial</p>
+                    <p><code>color Etat #hex</code> : Couleur de fond</p>
+                    <p><code>output Etat : $LaTeX$</code> : Sortie (Moore)</p>
+                </div>
+            </div>
+        </div>
 
-                    <section>
-                        <h3
-                            class="text-xl font-bold text-indigo-700 mb-3 border-b pb-2"
-                        >
-                            1. Syntaxe et Transitions
-                        </h3>
-                        <p class="mb-2">
-                            Pour créer des états et les relier, utilisez une
-                            flèche <code>-&gt;</code>.
-                        </p>
-                        <pre
-                            class="bg-slate-800 text-slate-200 p-3 rounded font-mono text-sm"
-                        >
-Idle -&gt; GenLow
-GenLow -&gt; GenLow</pre
-                        >
-                    </section>
-
-                    <section>
-                        <h3
-                            class="text-xl font-bold text-indigo-700 mb-3 border-b pb-2"
-                        >
-                            2. État Initial (Reset)
-                        </h3>
-                        <p class="mb-2">
-                            Utilisez <code>[*]</code> pour générer un petit
-                            point noir discret symbolisant le début du graphe.
-                        </p>
-                        <pre
-                            class="bg-slate-800 text-slate-200 p-3 rounded font-mono text-sm"
-                        >
-[*] -&gt; Idle : $\text{Reset}$</pre
-                        >
-                    </section>
-
-                    <section>
-                        <h3
-                            class="text-xl font-bold text-indigo-700 mb-3 border-b pb-2"
-                        >
-                            3. Étiquettes avec formules LaTeX
-                        </h3>
-                        <p class="mb-2">
-                            Ajoutez un deux-points <code>:</code> après votre
-                            transition, puis encadrez votre formule mathématique
-                            avec des symboles dollar <code>$</code>.
-                        </p>
-                        <ul class="list-disc pl-6 space-y-2 mb-4">
-                            <li><code>$\text{Reset}$</code> : Texte normal</li>
-                            <li>
-                                <code>$\overline{GO}$</code> : Négation logique
-                            </li>
-                            <li>
-                                <code>$\land$ / $\lor$</code> : Symboles
-                                logiques "ET" (<span class="math-render"
-                                    >\land</span
-                                >) et "OU" (<span class="math-render">\lor</span
-                                >)
-                            </li>
-                        </ul>
-                        <pre
-                            class="bg-slate-800 text-slate-200 p-3 rounded font-mono text-sm"
-                        >
-GenHigh -&gt; Done : $\overline{GO} \land \text{CPT\_DONE}$</pre
-                        >
-                    </section>
-
-                    <section>
-                        <h3
-                            class="text-xl font-bold text-indigo-700 mb-3 border-b pb-2"
-                        >
-                            4. Manipulation visuelle (Drag & Drop)
-                        </h3>
-                        <ul class="list-disc pl-6 space-y-2">
-                            <li>
-                                <strong>Déplacer :</strong> Cliquez et glissez
-                                les bulles.
-                            </li>
-                            <li>
-                                <strong>Tordre les flèches :</strong> Passez la
-                                souris sur une ligne (elle devient bleue) puis
-                                glissez pour courber la flèche.
-                            </li>
-                            <li>
-                                <strong>Déplacer les étiquettes :</strong>
-                                Glissez directement le texte blanc pour le
-                                décaler de sa flèche.
-                            </li>
-                            <li>
-                                <strong>Naviguer (Pan) :</strong> Glissez le
-                                fond de l'écran pour vous déplacer.
-                            </li>
-                        </ul>
-                    </section>
-
-                    <section>
-                        <h3
-                            class="text-xl font-bold text-indigo-700 mb-3 border-b pb-2"
-                        >
-                            5. Magie de l'Export PNG
-                        </h3>
-                        <p>
-                            Le bouton <strong>Exporter PNG</strong> cache
-                            discrètement votre code source
-                            <strong>à l'intérieur de l'image</strong>. Utilisez
-                            <strong>Charger PNG</strong> avec cette image pour
-                            retrouver instantanément votre graphe complet,
-                            modifiable avec la position exacte des éléments !
-                        </p>
-                    </section>
+        <div
+            id="shortcuts-modal"
+            class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4 transition-opacity duration-300 opacity-0"
+        >
+            <div
+                id="shortcuts-container"
+                class="bg-white rounded-xl shadow-2xl w-full max-w-xl max-h-[90vh] flex flex-col transform scale-95 transition-transform duration-300"
+            >
+                <div
+                    class="flex justify-between items-center p-6 border-b border-slate-200 bg-slate-50 rounded-t-xl font-bold text-xl"
+                >
+                    Raccourcis Clavier
+                </div>
+                <div
+                    class="p-6 overflow-y-auto flex-1 flex flex-col gap-2"
+                    id="shortcuts-list"
+                ></div>
+                <div
+                    class="p-4 bg-slate-50 text-xs text-center border-t rounded-b-xl"
+                >
+                    Cliquez sur un raccourci pour le modifier.
                 </div>
             </div>
         </div>
 
         <script>
-            // --- GESTION DE LA MODALE DE DOCUMENTATION ---
-            function toggleDoc(show) {
-                const modal = document.getElementById("doc-modal");
-                const container = document.getElementById("doc-container");
-
-                if (show) {
-                    modal.classList.remove("hidden");
-                    // Force un "reflow" pour que la transition d'opacité fonctionne
-                    void modal.offsetWidth;
-                    modal.classList.remove("opacity-0");
-                    container.classList.remove("scale-95");
-
-                    // Rendu des formules mathématiques dans la doc si pas encore fait
-                    document
-                        .querySelectorAll(".math-render:not(.rendered)")
-                        .forEach((el) => {
-                            if (window.katex) {
-                                katex.render(el.textContent, el, {
-                                    throwOnError: false,
-                                });
-                                el.classList.add("rendered");
-                            }
-                        });
-                } else {
-                    modal.classList.add("opacity-0");
-                    container.classList.add("scale-95");
-                    // Attend la fin de la transition pour masquer (300ms)
-                    setTimeout(() => {
-                        modal.classList.add("hidden");
-                    }, 300);
-                }
-            }
-
-            // Fermer la modale en cliquant en dehors
-            document
-                .getElementById("doc-modal")
-                .addEventListener("mousedown", function (e) {
-                    if (e.target === this) {
-                        toggleDoc(false);
-                    }
-                });
-
-            // --- ÉTAT DE L'APPLICATION ---
+            // --- ÉTAT ET CONFIGURATION ---
             let state = {
-                nodes: {}, // { id: { id, x, y, el } }
-                edges: [], // [ { source, target, label, key } ]
-                colors: {}, // { id: color }
-                edgeMetas: {}, // { edgeKey: { offsetX, offsetY, labelOffsetX, labelOffsetY } }
+                nodes: {},
+                edges: [],
+                colors: {},
+                outputs: {},
+                edgeMetas: {},
             };
-
-            // Variables pour la souris
-            let draggedNode = null;
-            let draggedEdgeKey = null;
-            let draggedLabelKey = null;
-            let isPanning = false;
-
+            let draggedNode = null,
+                draggedEdgeKey = null,
+                draggedLabelKey = null,
+                isPanning = false;
             let panX = 0,
-                panY = 0;
-            let lastMouseX = 0,
-                lastMouseY = 0;
-            let isInitialized = false;
+                panY = 0,
+                lastMouseX = 0,
+                lastMouseY = 0,
+                isInitialized = false;
+            const undoHistory = [],
+                redoHistory = [];
+            let isTyping = false,
+                typingTimer = null,
+                recordingAction = null;
 
-            const NODE_RADIUS = 47;
-
-            // Éléments du DOM
-            const editor = document.getElementById("editor");
-            const canvasContainer = document.getElementById("canvas-container");
-            const canvasContent = document.getElementById("canvas-content");
-            const nodesContainer = document.getElementById("nodes");
-            const labelsContainer = document.getElementById("labels");
-            const edgesGroup = document.getElementById("edges-group");
-            const saveIndicator = document.getElementById("save-indicator");
-            const highlightBg = document.getElementById("highlight-bg"); // Nouveau calque de coloration
-
-            // Initialisation par défaut
-            let initialPositions = {
-                "[*]": { x: 400, y: 20 },
-                Idle: { x: 400, y: 120 },
-                GenLow: { x: 250, y: 300 },
-                GenHigh: { x: 550, y: 300 },
-                Done: { x: 400, y: 500 },
+            // Positions calées sur l'image image_88752b.jpg
+            const initialPositions = {
+                "[*]": { x: 100, y: 150 },
+                Idle: { x: 250, y: 200 },
+                GenLow: { x: 600, y: 180 },
+                Done: { x: 220, y: 500 },
+                GenHigh: { x: 550, y: 600 },
             };
 
-            // --- GESTION DES DONNÉES ET SAUVEGARDE LOCALE ---
+            let defaultShortcuts = {
+                undo: {
+                    key: "z",
+                    ctrl: true,
+                    shift: false,
+                    alt: false,
+                    label: "Annuler (Undo)",
+                },
+                redo: {
+                    key: "z",
+                    ctrl: true,
+                    shift: true,
+                    alt: false,
+                    label: "Rétablir (Redo)",
+                },
+                save: {
+                    key: "s",
+                    ctrl: true,
+                    shift: false,
+                    alt: false,
+                    label: "Sauvegarder",
+                },
+                comment: {
+                    key: "/",
+                    ctrl: true,
+                    shift: false,
+                    alt: false,
+                    label: "Commenter",
+                },
+                indent: {
+                    key: "Tab",
+                    ctrl: false,
+                    shift: false,
+                    alt: false,
+                    label: "Indenter",
+                },
+                unindent: {
+                    key: "Tab",
+                    ctrl: false,
+                    shift: true,
+                    alt: false,
+                    label: "Désindenter",
+                },
+                moveUp: {
+                    key: "ArrowUp",
+                    ctrl: false,
+                    shift: false,
+                    alt: true,
+                    label: "Déplacer Ligne Haut",
+                },
+                moveDown: {
+                    key: "ArrowDown",
+                    ctrl: false,
+                    shift: false,
+                    alt: true,
+                    label: "Déplacer Ligne Bas",
+                },
+                dupUp: {
+                    key: "ArrowUp",
+                    ctrl: false,
+                    shift: true,
+                    alt: true,
+                    label: "Dupliquer Haut",
+                },
+                dupDown: {
+                    key: "ArrowDown",
+                    ctrl: false,
+                    shift: true,
+                    alt: true,
+                    label: "Dupliquer Bas",
+                },
+            };
+            let shortcutsConfig =
+                JSON.parse(localStorage.getItem("latex_graph_shortcuts")) ||
+                defaultShortcuts;
 
-            // Extrait l'état actuel du graphe sous forme d'objet JSON pur
+            // --- FONCTIONS SYSTÈME ---
             function getGraphStateData() {
-                const nodePositions = {};
-                for (let id in state.nodes) {
-                    nodePositions[id] = {
-                        x: state.nodes[id].x,
-                        y: state.nodes[id].y,
-                    };
-                }
+                const pos = {};
+                for (let id in state.nodes)
+                    pos[id] = { x: state.nodes[id].x, y: state.nodes[id].y };
                 return {
                     code: editor.value,
-                    nodes: nodePositions,
-                    edgeMetas: state.edgeMetas,
+                    nodes: pos,
+                    edgeMetas: JSON.parse(JSON.stringify(state.edgeMetas)),
                     pan: { x: panX, y: panY },
                 };
             }
 
-            // Applique un état chargé au graphe
-            function applyGraphStateData(saveData) {
-                editor.value = saveData.code;
-                updateHighlight(); // Mise à jour de la couleur
-                state.edgeMetas = saveData.edgeMetas || {};
-                if (saveData.pan) {
-                    panX = saveData.pan.x;
-                    panY = saveData.pan.y;
+            function applyGraphStateData(data) {
+                editor.value = data.code;
+                state.edgeMetas = JSON.parse(
+                    JSON.stringify(data.edgeMetas || {}),
+                );
+                if (data.pan) {
+                    panX = data.pan.x;
+                    panY = data.pan.y;
                     applyPan();
                 }
-                for (let id in saveData.nodes) {
-                    initialPositions[id] = saveData.nodes[id];
+                for (let id in data.nodes) {
+                    if (state.nodes[id]) {
+                        state.nodes[id].x = data.nodes[id].x;
+                        state.nodes[id].y = data.nodes[id].y;
+                    }
+                    initialPositions[id] = data.nodes[id];
                 }
-                isInitialized = false; // Force l'utilisation d'initialPositions lors du parse
+                updateHighlight();
+                isInitialized = false;
                 parseCode();
             }
 
-            // Sauvegarde transparente dans le navigateur
-            function autoSaveToBrowser() {
-                try {
-                    localStorage.setItem(
-                        "latex_state_graph_save",
-                        JSON.stringify(getGraphStateData()),
-                    );
-                } catch (e) {
-                    console.error("Erreur de sauvegarde locale:", e);
-                }
+            function saveStateForUndo() {
+                const cur = getGraphStateData();
+                if (
+                    undoHistory.length > 0 &&
+                    JSON.stringify(undoHistory[undoHistory.length - 1]) ===
+                        JSON.stringify(cur)
+                )
+                    return;
+                undoHistory.push(cur);
+                if (undoHistory.length > 50) undoHistory.shift();
+                redoHistory.length = 0;
             }
 
-            // Sauvegarde avec feedback visuel (pour Ctrl+S)
-            let saveTimeout;
-            function manualSaveFeedback() {
-                autoSaveToBrowser();
-                saveIndicator.classList.remove("opacity-0");
-                clearTimeout(saveTimeout);
-                saveTimeout = setTimeout(() => {
-                    saveIndicator.classList.add("opacity-0");
-                }, 2000);
+            function matchShortcut(e, actionName) {
+                const sc = shortcutsConfig[actionName];
+                const ctrl =
+                    navigator.platform.toUpperCase().indexOf("MAC") >= 0
+                        ? e.metaKey
+                        : e.ctrlKey;
+                return (
+                    e.key.toLowerCase() === sc.key.toLowerCase() &&
+                    ctrl === sc.ctrl &&
+                    e.shiftKey === sc.shift &&
+                    e.altKey === sc.alt
+                );
             }
 
-            // Interception du Ctrl+S ou Cmd+S
-            window.addEventListener("keydown", (e) => {
-                if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") {
-                    e.preventDefault(); // Empêche la fenêtre de sauvegarde du navigateur
-                    manualSaveFeedback();
-                }
-            });
+            // --- ÉDITEUR ET RENDU ---
+            const editor = document.getElementById("editor"),
+                highlightBg = document.getElementById("highlight-bg");
+            const canvasContainer = document.getElementById("canvas-container"),
+                canvasContent = document.getElementById("canvas-content");
+            const nodesContainer = document.getElementById("nodes"),
+                labelsContainer = document.getElementById("labels"),
+                edgesGroup = document.getElementById("edges-group");
 
-            // --- COLORATION SYNTAXIQUE (Custom Highlighter) ---
             function updateHighlight() {
                 const text = editor.value;
-                // 1. Échapper les caractères HTML spéciaux pour ne pas casser la structure
                 let html = text
                     .replace(/&/g, "&amp;")
                     .replace(/</g, "&lt;")
                     .replace(/>/g, "&gt;");
-
-                // 2. Appliquer les règles de coloration
                 html = html.replace(
-                    /(\/\/.*)|(\$.*?\$)|(-&gt;)|(\bcolor\b)|(#[0-9a-fA-F]{3,6})|(\[\*\])/g,
-                    function (match, p1, p2, p3, p4, p5, p6) {
+                    /(\/\/.*)|(\$.*?\$)|(-&gt;)|(\bcolor\b)|(#[0-9a-fA-F]{3,6})|(\[\*\])|(^[ \t]*output[ \t]+)([\w]+)(?=\s*:)/gim,
+                    function (m, p1, p2, p3, p4, p5, p6, p7, p8) {
                         if (p1)
-                            return `<span class="text-slate-400 italic">${p1}</span>`; // Commentaires (Gris Italique)
+                            return `<span class="text-slate-400 italic">${p1}</span>`;
                         if (p2)
-                            return `<span class="text-amber-700 bg-amber-100 rounded">${p2}</span>`; // LaTeX (Fond Orange) - Correction du décalage (retrait de px-1)
+                            return `<span class="text-amber-700 bg-amber-100 rounded">${p2}</span>`;
                         if (p3)
-                            return `<span class="text-indigo-500 font-bold">${p3}</span>`; // Flèches (Bleu indigo)
+                            return `<span class="text-indigo-500 font-bold">${p3}</span>`;
                         if (p4)
-                            return `<span class="text-pink-600 font-bold">${p4}</span>`; // Mot clé 'color' (Rose)
+                            return `<span class="text-pink-600 font-bold">${p4}</span>`;
                         if (p5)
-                            return `<span class="text-emerald-600 font-bold">${p5}</span>`; // Hexa (Vert)
+                            return `<span class="text-emerald-600 font-bold">${p5}</span>`;
                         if (p6)
-                            return `<span class="text-rose-500 font-bold">${p6}</span>`; // État initial (Rouge)
-                        return match;
+                            return `<span class="text-rose-500 font-bold">${p6}</span>`;
+                        if (p7 && p8)
+                            return `<span class="text-pink-600 font-bold">${p7}</span><span class="text-purple-600 font-bold">${p8}</span>`;
+                        return m;
                     },
                 );
-
-                // 3. Correction d'un bug classique (permet de défiler correctement sur une ligne vide à la fin)
-                if (text.length > 0 && text[text.length - 1] === "\n") {
+                if (text.length > 0 && text[text.length - 1] === "\n")
                     html += "<br/>";
-                }
-
                 highlightBg.innerHTML = html;
             }
 
-            // --- PARSEUR DU CODE ---
             function parseCode() {
-                const text = editor.value;
-                const lines = text.split("\n");
+                const lines = editor.value.split("\n");
                 const newEdges = [];
                 const newNodesSet = new Set();
                 state.colors = {};
+                state.outputs = {};
 
-                const edgeCounts = {};
-
-                lines.forEach((line) => {
-                    line = line.trim();
-                    if (!line || line.startsWith("//")) return;
-
-                    const colorMatch = line.match(/^color\s+(\w+)\s+(.+)$/i);
-                    if (colorMatch) {
-                        state.colors[colorMatch[1]] = colorMatch[2];
+                lines.forEach((l) => {
+                    l = l.trim();
+                    if (!l || l.startsWith("//")) return;
+                    const cM = l.match(/^color\s+(\w+)\s+(.+)$/i);
+                    if (cM) {
+                        state.colors[cM[1]] = cM[2];
                         return;
                     }
-
-                    const match = line.match(
+                    if (!l.includes("->")) {
+                        const oM = l.match(/^output\s+([\w]+)\s*:\s*(.+)$/i);
+                        if (oM) {
+                            if (!state.outputs[oM[1]])
+                                state.outputs[oM[1]] = [];
+                            state.outputs[oM[1]].push(oM[2]);
+                            newNodesSet.add(oM[1]);
+                            return;
+                        }
+                    }
+                    const tM = l.match(
                         /^([\w]+|\[\*\])\s*->\s*([\w]+|\[\*\])(?:\s*:\s*(.*))?$/,
                     );
-                    if (match) {
-                        const [_, source, target, label] = match;
-                        newNodesSet.add(source);
-                        newNodesSet.add(target);
-
-                        const baseKey = `${source}->${target}`;
-                        edgeCounts[baseKey] = (edgeCounts[baseKey] || 0) + 1;
-                        const key = `${baseKey}_${edgeCounts[baseKey]}`;
-
+                    if (tM) {
+                        newNodesSet.add(tM[1]);
+                        newNodesSet.add(tM[2]);
                         newEdges.push({
-                            source,
-                            target,
-                            label: label || "",
-                            key,
+                            source: tM[1],
+                            target: tM[2],
+                            label: tM[3] || "",
+                            key: `${tM[1]}->${tM[2]}_${newEdges.length}`,
                         });
                     }
                 });
-
-                const width = canvasContainer.clientWidth || 800;
-                const height = canvasContainer.clientHeight || 600;
 
                 Object.keys(state.nodes).forEach((id) => {
                     if (!newNodesSet.has(id)) {
@@ -790,211 +692,401 @@ GenHigh -&gt; Done : $\overline{GO} \land \text{CPT\_DONE}$</pre
                 });
 
                 Array.from(newNodesSet).forEach((id) => {
-                    let nodeObj = state.nodes[id];
-
-                    if (!nodeObj) {
-                        let x, y;
-                        if (!isInitialized && initialPositions[id]) {
-                            x = initialPositions[id].x;
-                            y = initialPositions[id].y;
-                        } else {
-                            x = width / 2 - panX + (Math.random() - 0.5) * 100;
-                            y = height / 2 - panY + (Math.random() - 0.5) * 100;
-                        }
-
+                    let nO = state.nodes[id];
+                    if (!nO) {
+                        let x =
+                                initialPositions[id]?.x ??
+                                400 + (Math.random() - 0.5) * 200,
+                            y =
+                                initialPositions[id]?.y ??
+                                300 + (Math.random() - 0.5) * 200;
                         const el = document.createElement("div");
-
-                        if (id === "[*]") {
-                            el.className = "node node-initial";
-                            el.textContent = "";
-                        } else {
-                            el.className =
-                                "node node-normal bg-indigo-100 border-2 border-indigo-400 text-indigo-900 font-bold";
-                            el.textContent = id;
-                        }
-
-                        el.dataset.id = id;
-
+                        el.className =
+                            id === "[*]"
+                                ? "node node-initial"
+                                : "node node-normal border-2 border-indigo-400 text-indigo-900 font-bold flex";
                         el.addEventListener("mousedown", (e) => {
                             e.stopPropagation();
+                            saveStateForUndo();
                             draggedNode = state.nodes[id];
                             lastMouseX = e.clientX;
                             lastMouseY = e.clientY;
                         });
-
                         nodesContainer.appendChild(el);
-                        nodeObj = { id, x, y, el };
-                        state.nodes[id] = nodeObj;
+                        nO = { id, x, y, el, radius: id === "[*]" ? 4 : 47 };
+                        state.nodes[id] = nO;
                     }
-
                     if (id !== "[*]") {
-                        nodeObj.el.style.backgroundColor =
+                        nO.el.style.backgroundColor =
                             state.colors[id] || "#e0e7ff";
+                        nO.el.innerHTML = "";
+                        const outs = state.outputs[id];
+                        let diam = 90;
+                        if (outs && outs.length > 0) {
+                            let maxL = id.length;
+                            outs.forEach(
+                                (o) =>
+                                    (maxL = Math.max(
+                                        maxL,
+                                        o.replace(/\$/g, "").length,
+                                    )),
+                            );
+                            diam = Math.max(
+                                90,
+                                maxL * 8.5,
+                                50 + outs.length * 22,
+                            );
+                            nO.radius = diam / 2 + 2;
+                            nO.el.style.width =
+                                nO.el.style.height = `${diam}px`;
+                            nO.el.classList.add("flex-col");
+                            nO.el.style.padding = "0";
+                            const nD = document.createElement("div");
+                            nD.className =
+                                "w-full flex-1 flex items-end justify-center pb-[4px] font-bold text-[14px]";
+                            nD.textContent = id;
+                            const oC = document.createElement("div");
+                            oC.className =
+                                "w-[90%] flex-1 flex flex-col items-center justify-start border-t border-slate-500 pt-[4px] text-[12px] leading-tight";
+                            outs.forEach((o) => {
+                                const l = document.createElement("div");
+                                if (o.includes("$") && window.katex) {
+                                    try {
+                                        katex.render(o.replace(/\$/g, ""), l, {
+                                            throwOnError: false,
+                                        });
+                                    } catch (e) {
+                                        l.textContent = o;
+                                    }
+                                } else l.textContent = o;
+                                oC.appendChild(l);
+                            });
+                            nO.el.appendChild(nD);
+                            nO.el.appendChild(oC);
+                        } else {
+                            diam = Math.max(90, id.length * 12);
+                            nO.radius = diam / 2;
+                            nO.el.style.width =
+                                nO.el.style.height = `${diam}px`;
+                            nO.el.classList.remove("flex-col");
+                            nO.el.textContent = id;
+                            nO.el.style.padding = "5px";
+                            nO.el.style.fontSize = "16px";
+                        }
                     }
                 });
-
                 state.edges = newEdges;
                 isInitialized = true;
                 render();
             }
 
-            // --- MOTEUR DE RENDU ---
             function render() {
-                Object.values(state.nodes).forEach((node) => {
-                    node.el.style.left = `${node.x}px`;
-                    node.el.style.top = `${node.y}px`;
+                Object.values(state.nodes).forEach((n) => {
+                    n.el.style.left = `${n.x}px`;
+                    n.el.style.top = `${n.y}px`;
                 });
-
-                let svgContent = "";
+                let svg = "";
                 labelsContainer.innerHTML = "";
-
-                state.edges.forEach((edge) => {
-                    const n1 = state.nodes[edge.source];
-                    const n2 = state.nodes[edge.target];
+                state.edges.forEach((e) => {
+                    const n1 = state.nodes[e.source],
+                        n2 = state.nodes[e.target];
                     if (!n1 || !n2) return;
-
-                    const meta = state.edgeMetas[edge.key] || {
+                    const meta = state.edgeMetas[e.key] || {
                         offsetX: 0,
                         offsetY: 0,
                         labelOffsetX: 0,
                         labelOffsetY: 0,
                     };
-                    const offsetX = meta.offsetX || 0;
-                    const offsetY = meta.offsetY || 0;
-                    const labelOffsetX = meta.labelOffsetX || 0;
-                    const labelOffsetY = meta.labelOffsetY || 0;
-
-                    const r1 = n1.id === "[*]" ? 4 : 47;
-                    const r2 = n2.id === "[*]" ? 4 : 47;
-
-                    let pathData = "";
-                    let labelX = 0;
-                    let labelY = 0;
-
+                    const r1 = n1.radius,
+                        r2 = n2.radius;
+                    let p = "",
+                        lx = 0,
+                        ly = 0;
                     if (n1.id === n2.id) {
-                        // --- BOUCLE SUR LE MÊME ÉTAT (Dynamique et Rotative) ---
-                        // On définit un vecteur de "traction". Par défaut, vers le haut (0, -120).
-                        const px = 0 + offsetX;
-                        const py = -120 + offsetY;
-
-                        // Angle global de la boucle par rapport au centre du nœud
-                        const theta = Math.atan2(py, px);
-
-                        // Distance (longueur de la boucle). Limitée pour ne pas s'écraser.
-                        const dist = Math.max(60, Math.sqrt(px * px + py * py));
-
-                        // Points d'attache dynamiques glissant sur le bord du cercle
-                        const spread = 0.4; // Écartement de la base de la boucle (~23 degrés)
-                        const startX = n1.x + r1 * Math.cos(theta - spread);
-                        const startY = n1.y + r1 * Math.sin(theta - spread);
-                        const endX = n1.x + r1 * Math.cos(theta + spread);
-                        const endY = n1.y + r1 * Math.sin(theta + spread);
-
-                        // Points de contrôle de la courbe de Bézier (pour la forme en ballon)
-                        const cpDist = dist * 1.35;
-                        const cpSpread = 0.75;
-                        const cp1x = n1.x + cpDist * Math.cos(theta - cpSpread);
-                        const cp1y = n1.y + cpDist * Math.sin(theta - cpSpread);
-                        const cp2x = n1.x + cpDist * Math.cos(theta + cpSpread);
-                        const cp2y = n1.y + cpDist * Math.sin(theta + cpSpread);
-
-                        pathData = `M ${startX} ${startY} C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${endX} ${endY}`;
-
-                        // Position du label ajustée dynamiquement au sommet
-                        labelX =
-                            n1.x + (dist + 15) * Math.cos(theta) + labelOffsetX;
-                        labelY =
-                            n1.y + (dist + 15) * Math.sin(theta) + labelOffsetY;
-                    } else {
-                        if (n1.x === n2.x && n1.y === n2.y) return;
-
-                        const dx = n2.x - n1.x;
-                        const dy = n2.y - n1.y;
-                        const dist = Math.sqrt(dx * dx + dy * dy);
-                        const nx = -dy / dist;
-                        const ny = dx / dist;
-
-                        const isBidi = state.edges.some(
-                            (e) => e.source === n2.id && e.target === n1.id,
+                        const theta = Math.atan2(
+                            -120 + meta.offsetY,
+                            meta.offsetX,
                         );
-                        let curveSize = isBidi ? 50 : 20;
-                        if (n1.id === "[*]") curveSize = 0;
-
-                        const cx = (n1.x + n2.x) / 2 + nx * curveSize + offsetX;
-                        const cy = (n1.y + n2.y) / 2 + ny * curveSize + offsetY;
-
-                        const angleLeave = Math.atan2(cy - n1.y, cx - n1.x);
-                        const startX = n1.x + r1 * Math.cos(angleLeave);
-                        const startY = n1.y + r1 * Math.sin(angleLeave);
-
-                        const angleEnter = Math.atan2(n2.y - cy, n2.x - cx);
-                        const endX = n2.x - r2 * Math.cos(angleEnter);
-                        const endY = n2.y - r2 * Math.sin(angleEnter);
-
-                        pathData = `M ${startX} ${startY} Q ${cx} ${cy} ${endX} ${endY}`;
-
-                        labelX =
-                            0.25 * startX +
+                        const dist = Math.max(
+                            r1 + 25,
+                            Math.sqrt(
+                                meta.offsetX ** 2 + (-120 + meta.offsetY) ** 2,
+                            ),
+                        );
+                        const s = 0.4,
+                            sx = n1.x + r1 * Math.cos(theta - s),
+                            sy = n1.y + r1 * Math.sin(theta - s),
+                            ex = n1.x + r1 * Math.cos(theta + s),
+                            ey = n1.y + r1 * Math.sin(theta + s);
+                        const cpD = dist * 1.35,
+                            cpS = 0.75;
+                        p = `M ${sx} ${sy} C ${n1.x + cpD * Math.cos(theta - cpS)} ${n1.y + cpD * Math.sin(theta - cpS)}, ${n1.x + cpD * Math.cos(theta + cpS)} ${n1.y + cpD * Math.sin(theta + cpS)}, ${ex} ${ey}`;
+                        lx =
+                            n1.x +
+                            (dist + 15) * Math.cos(theta) +
+                            (meta.labelOffsetX || 0);
+                        ly =
+                            n1.y +
+                            (dist + 15) * Math.sin(theta) +
+                            (meta.labelOffsetY || 0);
+                    } else {
+                        const dx = n2.x - n1.x,
+                            dy = n2.y - n1.y,
+                            d = Math.sqrt(dx ** 2 + dy ** 2);
+                        const isBidi = state.edges.some(
+                            (x) => x.source === n2.id && x.target === n1.id,
+                        );
+                        let cS =
+                            (isBidi ? 50 : 20) + (n1.id === "[*]" ? -20 : 0);
+                        const cx =
+                                (n1.x + n2.x) / 2 +
+                                (-dy / d) * cS +
+                                meta.offsetX,
+                            cy =
+                                (n1.y + n2.y) / 2 +
+                                (dx / d) * cS +
+                                meta.offsetY;
+                        const aL = Math.atan2(cy - n1.y, cx - n1.x),
+                            aE = Math.atan2(n2.y - cy, n2.x - cx);
+                        const sX = n1.x + r1 * Math.cos(aL),
+                            sY = n1.y + r1 * Math.sin(aL),
+                            eX = n2.x - r2 * Math.cos(aE),
+                            eY = n2.y - r2 * Math.sin(aE);
+                        p = `M ${sX} ${sY} Q ${cx} ${cy} ${eX} ${eY}`;
+                        lx =
+                            0.25 * sX +
                             0.5 * cx +
-                            0.25 * endX +
-                            labelOffsetX;
-                        labelY =
-                            0.25 * startY +
+                            0.25 * eX +
+                            (meta.labelOffsetX || 0);
+                        ly =
+                            0.25 * sY +
                             0.5 * cy +
-                            0.25 * endY +
-                            labelOffsetY;
+                            0.25 * eY +
+                            (meta.labelOffsetY || 0);
                     }
-
-                    svgContent += `
-                <g class="edge-group">
-                    <path d="${pathData}" fill="none" stroke="transparent" stroke-width="25" data-edge-key="${edge.key}" style="pointer-events: stroke; cursor: grab;"></path>
-                    <path d="${pathData}" fill="none" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)" class="visible-edge" style="pointer-events: none;"></path>
-                </g>`;
-
-                    if (edge.label) {
-                        const labelEl = document.createElement("div");
-                        labelEl.className =
-                            "edge-label px-2 py-1 rounded border border-slate-200 shadow-sm text-sm text-slate-700 transition-shadow";
-                        labelEl.style.left = `${labelX}px`;
-                        labelEl.style.top = `${labelY}px`;
-
-                        labelEl.addEventListener("mousedown", (e) => {
-                            e.stopPropagation();
-                            draggedLabelKey = edge.key;
-                            lastMouseX = e.clientX;
-                            lastMouseY = e.clientY;
+                    svg += `<g class="edge-group"><path d="${p}" fill="none" stroke="transparent" stroke-width="25" data-edge-key="${e.key}" style="pointer-events: stroke; cursor: grab;"></path><path d="${p}" fill="none" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)" class="visible-edge" style="pointer-events: none;"></path></g>`;
+                    if (e.label) {
+                        const l = document.createElement("div");
+                        l.className = "edge-label";
+                        l.style.left = `${lx}px`;
+                        l.style.top = `${ly}px`;
+                        l.addEventListener("mousedown", (ev) => {
+                            ev.stopPropagation();
+                            saveStateForUndo();
+                            draggedLabelKey = e.key;
+                            lastMouseX = ev.clientX;
+                            lastMouseY = ev.clientY;
                         });
-
-                        if (edge.label.includes("$")) {
+                        if (e.label.includes("$") && window.katex) {
                             try {
-                                const mathText = edge.label.replace(/\$/g, "");
-                                if (window.katex) {
-                                    katex.render(mathText, labelEl, {
-                                        throwOnError: false,
-                                    });
-                                } else {
-                                    labelEl.textContent = edge.label;
-                                }
-                            } catch (e) {
-                                labelEl.textContent = edge.label;
+                                katex.render(e.label.replace(/\$/g, ""), l, {
+                                    throwOnError: false,
+                                });
+                            } catch (err) {
+                                l.textContent = e.label;
                             }
-                        } else {
-                            labelEl.textContent = edge.label;
-                        }
-                        labelsContainer.appendChild(labelEl);
+                        } else l.textContent = e.label;
+                        labelsContainer.appendChild(l);
                     }
                 });
-
-                edgesGroup.innerHTML = svgContent;
+                edgesGroup.innerHTML = svg;
             }
 
-            // --- GESTION DU PANNING ---
             function applyPan() {
                 canvasContent.style.transform = `translate(${panX}px, ${panY}px)`;
                 canvasContainer.style.backgroundPosition = `${panX}px ${panY}px`;
             }
 
-            // --- GESTION DES ÉVÉNEMENTS GLOBAUX ---
+            // --- RACCOURCIS ---
+            editor.addEventListener("keydown", (e) => {
+                if (
+                    e.key.length === 1 &&
+                    !e.ctrlKey &&
+                    !e.metaKey &&
+                    !e.altKey
+                ) {
+                    if (!isTyping) {
+                        saveStateForUndo();
+                        isTyping = true;
+                    }
+                }
+
+                const start = editor.selectionStart,
+                    end = editor.selectionEnd,
+                    lines = editor.value.split("\n");
+                let sLIdx =
+                        editor.value.substring(0, start).split("\n").length - 1,
+                    eLIdx =
+                        editor.value.substring(0, end).split("\n").length - 1;
+                let handled = false;
+
+                if (
+                    matchShortcut(e, "indent") ||
+                    matchShortcut(e, "unindent")
+                ) {
+                    e.preventDefault();
+                    saveStateForUndo();
+                    if (matchShortcut(e, "indent")) {
+                        if (start === end)
+                            document.execCommand("insertText", false, "    ");
+                        else {
+                            for (let i = sLIdx; i <= eLIdx; i++)
+                                lines[i] = "    " + lines[i];
+                            editor.value = lines.join("\n");
+                            editor.selectionStart = start + 4;
+                            editor.selectionEnd = end + (eLIdx - sLIdx + 1) * 4;
+                        }
+                    } else {
+                        let rS = 0,
+                            rT = 0;
+                        for (let i = sLIdx; i <= eLIdx; i++) {
+                            const m =
+                                lines[i].match(/^ {1,4}/) ||
+                                lines[i].match(/^\t/);
+                            if (m) {
+                                lines[i] = lines[i].substring(m[0].length);
+                                rT += m[0].length;
+                                if (i === sLIdx) rS = m[0].length;
+                            }
+                        }
+                        editor.value = lines.join("\n");
+                        editor.selectionStart = Math.max(0, start - rS);
+                        editor.selectionEnd = Math.max(0, end - rT);
+                    }
+                    handled = true;
+                }
+
+                if (matchShortcut(e, "comment")) {
+                    e.preventDefault();
+                    saveStateForUndo();
+                    let allC = true;
+                    for (let i = sLIdx; i <= eLIdx; i++)
+                        if (
+                            lines[i].trim() !== "" &&
+                            !lines[i].trim().startsWith("//")
+                        ) {
+                            allC = false;
+                            break;
+                        }
+                    let dS = 0,
+                        dT = 0;
+                    for (let i = sLIdx; i <= eLIdx; i++) {
+                        if (allC) {
+                            const m = lines[i].match(/^(\s*)\/\/\s?/);
+                            if (m) {
+                                lines[i] = lines[i].replace(
+                                    /^(\s*)\/\/\s?/,
+                                    "$1",
+                                );
+                                let diff = m[0].length - m[1].length;
+                                dT -= diff;
+                                if (i === sLIdx) dS -= diff;
+                            }
+                        } else {
+                            lines[i] = "// " + lines[i];
+                            dT += 3;
+                            if (i === sLIdx) dS += 3;
+                        }
+                    }
+                    editor.value = lines.join("\n");
+                    editor.selectionStart = start + dS;
+                    editor.selectionEnd = end + dT;
+                    handled = true;
+                }
+
+                if (
+                    matchShortcut(e, "moveUp") ||
+                    matchShortcut(e, "moveDown") ||
+                    matchShortcut(e, "dupUp") ||
+                    matchShortcut(e, "dupDown")
+                ) {
+                    e.preventDefault();
+                    saveStateForUndo();
+                    const iDup =
+                            matchShortcut(e, "dupUp") ||
+                            matchShortcut(e, "dupDown"),
+                        iUp =
+                            matchShortcut(e, "moveUp") ||
+                            matchShortcut(e, "dupUp");
+                    if (iDup) {
+                        const tD = lines.slice(sLIdx, eLIdx + 1);
+                        if (iUp) {
+                            lines.splice(sLIdx, 0, ...tD);
+                            editor.value = lines.join("\n");
+                            editor.selectionStart = start;
+                            editor.selectionEnd = end;
+                        } else {
+                            lines.splice(eLIdx + 1, 0, ...tD);
+                            editor.value = lines.join("\n");
+                            let aL = tD.join("\n").length + 1;
+                            editor.selectionStart = start + aL;
+                            editor.selectionEnd = end + aL;
+                        }
+                    } else {
+                        if (iUp && sLIdx > 0) {
+                            const lA = lines[sLIdx - 1];
+                            lines.splice(sLIdx - 1, 1);
+                            lines.splice(eLIdx, 0, lA);
+                            editor.value = lines.join("\n");
+                            editor.selectionStart = start - lA.length - 1;
+                            editor.selectionEnd = end - lA.length - 1;
+                        } else if (!iUp && eLIdx < lines.length - 1) {
+                            const lB = lines[eLIdx + 1];
+                            lines.splice(eLIdx + 1, 1);
+                            lines.splice(sLIdx, 0, lB);
+                            editor.value = lines.join("\n");
+                            editor.selectionStart = start + lB.length + 1;
+                            editor.selectionEnd = end + lB.length + 1;
+                        }
+                    }
+                    handled = true;
+                }
+
+                if (handled) {
+                    updateHighlight();
+                    parseCode();
+                    autoSaveToBrowser();
+                    highlightBg.scrollTop = editor.scrollTop;
+                    highlightBg.scrollLeft = editor.scrollLeft;
+                }
+            });
+
+            // --- ÉVÉNEMENTS GLOBAUX ---
+            window.addEventListener(
+                "keydown",
+                (e) => {
+                    if (recordingAction) {
+                        e.preventDefault();
+                        if (["Control", "Shift", "Alt", "Meta"].includes(e.key))
+                            return;
+                        shortcutsConfig[recordingAction] = {
+                            ...shortcutsConfig[recordingAction],
+                            key: e.key,
+                            ctrl: e.ctrlKey || e.metaKey,
+                            shift: e.shiftKey,
+                            alt: e.altKey,
+                        };
+                        localStorage.setItem(
+                            "latex_graph_shortcuts",
+                            JSON.stringify(shortcutsConfig),
+                        );
+                        recordingAction = null;
+                        renderShortcutsList();
+                        return;
+                    }
+                    if (matchShortcut(e, "save")) {
+                        e.preventDefault();
+                        manualSaveFeedback();
+                    } else if (matchShortcut(e, "undo")) {
+                        e.preventDefault();
+                        performUndo();
+                    } else if (matchShortcut(e, "redo")) {
+                        e.preventDefault();
+                        performRedo();
+                    }
+                },
+                true,
+            );
 
             canvasContainer.addEventListener("mousedown", (e) => {
                 if (
@@ -1002,32 +1094,30 @@ GenHigh -&gt; Done : $\overline{GO} \land \text{CPT\_DONE}$</pre
                     e.target.closest(".edge-label")
                 )
                     return;
+                saveStateForUndo();
                 isPanning = true;
                 lastMouseX = e.clientX;
                 lastMouseY = e.clientY;
             });
-
             edgesGroup.addEventListener("mousedown", (e) => {
                 if (
                     e.target.tagName.toLowerCase() === "path" &&
                     e.target.hasAttribute("data-edge-key")
                 ) {
                     e.stopPropagation();
+                    saveStateForUndo();
                     draggedEdgeKey = e.target.getAttribute("data-edge-key");
                     lastMouseX = e.clientX;
                     lastMouseY = e.clientY;
                 }
             });
-
             window.addEventListener("mousemove", (e) => {
                 if (draggedNode) {
-                    const rect = canvasContainer.getBoundingClientRect();
-                    draggedNode.x = e.clientX - rect.left - panX;
-                    draggedNode.y = e.clientY - rect.top - panY;
+                    const r = canvasContainer.getBoundingClientRect();
+                    draggedNode.x = e.clientX - r.left - panX;
+                    draggedNode.y = e.clientY - r.top - panY;
                     render();
                 } else if (draggedLabelKey) {
-                    const dx = e.clientX - lastMouseX;
-                    const dy = e.clientY - lastMouseY;
                     if (!state.edgeMetas[draggedLabelKey])
                         state.edgeMetas[draggedLabelKey] = {
                             offsetX: 0,
@@ -1035,18 +1125,14 @@ GenHigh -&gt; Done : $\overline{GO} \land \text{CPT\_DONE}$</pre
                             labelOffsetX: 0,
                             labelOffsetY: 0,
                         };
-                    state.edgeMetas[draggedLabelKey].labelOffsetX =
-                        (state.edgeMetas[draggedLabelKey].labelOffsetX || 0) +
-                        dx;
-                    state.edgeMetas[draggedLabelKey].labelOffsetY =
-                        (state.edgeMetas[draggedLabelKey].labelOffsetY || 0) +
-                        dy;
+                    state.edgeMetas[draggedLabelKey].labelOffsetX +=
+                        e.clientX - lastMouseX;
+                    state.edgeMetas[draggedLabelKey].labelOffsetY +=
+                        e.clientY - lastMouseY;
                     lastMouseX = e.clientX;
                     lastMouseY = e.clientY;
                     render();
                 } else if (draggedEdgeKey) {
-                    const dx = e.clientX - lastMouseX;
-                    const dy = e.clientY - lastMouseY;
                     if (!state.edgeMetas[draggedEdgeKey])
                         state.edgeMetas[draggedEdgeKey] = {
                             offsetX: 0,
@@ -1054,33 +1140,29 @@ GenHigh -&gt; Done : $\overline{GO} \land \text{CPT\_DONE}$</pre
                             labelOffsetX: 0,
                             labelOffsetY: 0,
                         };
-                    state.edgeMetas[draggedEdgeKey].offsetX += dx;
-                    state.edgeMetas[draggedEdgeKey].offsetY += dy;
+                    state.edgeMetas[draggedEdgeKey].offsetX +=
+                        e.clientX - lastMouseX;
+                    state.edgeMetas[draggedEdgeKey].offsetY +=
+                        e.clientY - lastMouseY;
                     lastMouseX = e.clientX;
                     lastMouseY = e.clientY;
                     render();
                 } else if (isPanning) {
-                    const dx = e.clientX - lastMouseX;
-                    const dy = e.clientY - lastMouseY;
-                    panX += dx;
-                    panY += dy;
+                    panX += e.clientX - lastMouseX;
+                    panY += e.clientY - lastMouseY;
                     lastMouseX = e.clientX;
                     lastMouseY = e.clientY;
                     applyPan();
                 }
             });
-
             window.addEventListener("mouseup", () => {
-                // Sauvegarde locale à chaque fois qu'on termine une action (déplacement, pan)
                 if (
                     draggedNode ||
                     draggedEdgeKey ||
                     draggedLabelKey ||
                     isPanning
-                ) {
+                )
                     autoSaveToBrowser();
-                }
-
                 draggedNode = null;
                 draggedEdgeKey = null;
                 draggedLabelKey = null;
@@ -1088,221 +1170,206 @@ GenHigh -&gt; Done : $\overline{GO} \land \text{CPT\_DONE}$</pre
             });
 
             editor.addEventListener("input", () => {
-                updateHighlight(); // Met à jour les couleurs en tapant
+                updateHighlight();
                 parseCode();
-                autoSaveToBrowser(); // Sauvegarde locale pendant l'édition
+                autoSaveToBrowser();
             });
-
-            // Synchroniser le défilement (scroll) entre le texte transparent et le fond coloré
+            editor.addEventListener("keyup", () => {
+                clearTimeout(typingTimer);
+                typingTimer = setTimeout(() => (isTyping = false), 800);
+            });
             editor.addEventListener("scroll", () => {
                 highlightBg.scrollTop = editor.scrollTop;
                 highlightBg.scrollLeft = editor.scrollLeft;
             });
 
-            // Chargement initial ou récupération de la sauvegarde
             window.addEventListener("load", () => {
-                setTimeout(() => {
-                    const savedState = localStorage.getItem(
-                        "latex_state_graph_save",
-                    );
-                    if (savedState) {
-                        try {
-                            applyGraphStateData(JSON.parse(savedState));
-                        } catch (e) {
-                            parseCode();
-                            updateHighlight();
-                        }
-                    } else {
+                const s = localStorage.getItem("latex_state_graph_save");
+                if (s)
+                    try {
+                        applyGraphStateData(JSON.parse(s));
+                    } catch (e) {
                         parseCode();
                         updateHighlight();
                     }
-                }, 100);
+                else {
+                    parseCode();
+                    updateHighlight();
+                }
             });
 
-            // --- SAUVEGARDE ET CHARGEMENT EXPORT (PNG Magique) ---
+            // --- UTILITAIRES ---
+            function resetLayout() {
+                saveStateForUndo();
+                state.edgeMetas = {};
+                panX = 0;
+                panY = 0;
+                applyPan();
+                Object.values(state.nodes).forEach((n) => n.el.remove());
+                state.nodes = {};
+                isInitialized = false;
+                parseCode();
+                autoSaveToBrowser();
+            }
+            function autoSaveToBrowser() {
+                localStorage.setItem(
+                    "latex_state_graph_save",
+                    JSON.stringify(getGraphStateData()),
+                );
+            }
+            function manualSaveFeedback() {
+                autoSaveToBrowser();
+                document
+                    .getElementById("save-indicator")
+                    .classList.remove("opacity-0");
+                setTimeout(
+                    () =>
+                        document
+                            .getElementById("save-indicator")
+                            .classList.add("opacity-0"),
+                    2000,
+                );
+            }
+            function performUndo() {
+                if (undoHistory.length === 0) return;
+                redoHistory.push(getGraphStateData());
+                applyGraphStateData(undoHistory.pop());
+                autoSaveToBrowser();
+            }
+            function performRedo() {
+                if (redoHistory.length === 0) return;
+                undoHistory.push(getGraphStateData());
+                applyGraphStateData(redoHistory.pop());
+                autoSaveToBrowser();
+            }
+            function toggleDoc(s) {
+                document
+                    .getElementById("doc-modal")
+                    .classList.toggle("hidden", !s);
+                if (s) {
+                    void document.getElementById("doc-modal").offsetWidth;
+                    document
+                        .getElementById("doc-modal")
+                        .classList.remove("opacity-0");
+                    document
+                        .getElementById("doc-container")
+                        .classList.remove("scale-95");
+                }
+            }
+            function toggleShortcuts(s) {
+                if (s) renderShortcutsList();
+                document
+                    .getElementById("shortcuts-modal")
+                    .classList.toggle("hidden", !s);
+                if (s) {
+                    void document.getElementById("shortcuts-modal").offsetWidth;
+                    document
+                        .getElementById("shortcuts-modal")
+                        .classList.remove("opacity-0");
+                    document
+                        .getElementById("shortcuts-container")
+                        .classList.remove("scale-95");
+                }
+            }
+            function renderShortcutsList() {
+                const list = document.getElementById("shortcuts-list");
+                list.innerHTML = "";
+                Object.keys(shortcutsConfig).forEach((a) => {
+                    const sc = shortcutsConfig[a];
+                    const div = document.createElement("div");
+                    div.className =
+                        "flex justify-between items-center py-2 border-b";
+                    div.innerHTML = `<span class="font-medium">${sc.label}</span><button onclick="startRecording('${a}')" id="btn-sc-${a}" class="px-3 py-1 bg-slate-100 border rounded font-mono text-sm">${formatShortcut(sc)}</button>`;
+                    list.appendChild(div);
+                });
+            }
+            function startRecording(a) {
+                recordingAction = a;
+                document.getElementById(`btn-sc-${a}`).textContent = "...";
+            }
+            function formatShortcut(sc) {
+                let p = [];
+                if (sc.ctrl) p.push("Ctrl");
+                if (sc.alt) p.push("Alt");
+                if (sc.shift) p.push("Maj");
+                p.push(sc.key.toUpperCase().replace("ARROW", ""));
+                return p.join(" + ");
+            }
 
             async function exportGraphToPNG() {
-                const btn = document.getElementById("btn-export");
-                const originalHTML = btn.innerHTML;
-                btn.innerHTML = `⏳ Génération...`;
-
-                const bgColor = document.getElementById("export-bg").value;
-
-                const saveData = getGraphStateData();
-                const jsonStr = JSON.stringify(saveData);
-
-                // 1. Calcul de la Bounding Box (boîte englobante) pour centrer parfaitement
+                const btn = document.getElementById("btn-export"),
+                    oH = btn.innerHTML;
+                btn.innerHTML = "...";
+                const bC = document.getElementById("export-bg").value,
+                    sD = getGraphStateData(),
+                    jS = JSON.stringify(sD);
                 let minX = Infinity,
                     minY = Infinity,
                     maxX = -Infinity,
                     maxY = -Infinity;
                 Object.values(state.nodes).forEach((n) => {
-                    const r = n.id === "[*]" ? 10 : 50;
+                    let r = n.radius;
                     minX = Math.min(minX, n.x - r);
                     minY = Math.min(minY, n.y - r);
                     maxX = Math.max(maxX, n.x + r);
                     maxY = Math.max(maxY, n.y + r);
                 });
-
-                // Prendre en compte les labels pour ne pas les couper
-                Array.from(labelsContainer.children).forEach((lbl) => {
-                    const lx = parseFloat(lbl.style.left);
-                    const ly = parseFloat(lbl.style.top);
-                    if (!isNaN(lx) && !isNaN(ly)) {
-                        // Calcul basé sur la VRAIE taille du texte à l'écran
-                        const halfW = lbl.offsetWidth / 2 || 70;
-                        const halfH = lbl.offsetHeight / 2 || 20;
-                        minX = Math.min(minX, lx - halfW);
-                        minY = Math.min(minY, ly - halfH);
-                        maxX = Math.max(maxX, lx + halfW);
-                        maxY = Math.max(maxY, ly + halfH);
-                    }
-                });
-
-                if (minX === Infinity) {
-                    minX = 0;
-                    minY = 0;
-                    maxX = 500;
-                    maxY = 500;
-                }
-
-                const padding = 80;
-                minX -= padding;
-                minY -= padding;
-                maxX += padding;
-                maxY += padding;
-
-                const exportWidth = maxX - minX;
-                const exportHeight = maxY - minY;
-
-                // 2. Préparation du DOM (Détachement temporaire pour éviter la coupe du navigateur)
-                const oldPanX = panX;
-                const oldPanY = panY;
-                const oldBg = canvasContainer.style.backgroundImage;
-                const oldPosition = canvasContainer.style.position;
-                const oldWidth = canvasContainer.style.width;
-                const oldHeight = canvasContainer.style.height;
-                const oldZIndex = canvasContainer.style.zIndex;
-
-                // On centre la caméra exactement sur notre boîte englobante
+                minX -= 80;
+                minY -= 80;
+                maxX += 80;
+                maxY += 80;
+                let eW = maxX - minX,
+                    eH = maxY - minY,
+                    oPX = panX,
+                    oPY = panY;
                 panX = -minX;
                 panY = -minY;
                 applyPan();
-                canvasContainer.style.backgroundImage = "none";
-
-                // On force la taille du conteneur pour simuler un écran de la taille exacte du graphe
+                const containerStyle = canvasContainer.style.cssText;
                 canvasContainer.style.position = "fixed";
-                canvasContainer.style.top = "0";
-                canvasContainer.style.left = "0";
-                canvasContainer.style.width = `${exportWidth}px`;
-                canvasContainer.style.height = `${exportHeight}px`;
-                canvasContainer.style.zIndex = "9999";
-
-                // Petit délai pour laisser le navigateur appliquer la nouvelle taille (évite les bugs)
+                canvasContainer.style.width = `${eW}px`;
+                canvasContainer.style.height = `${eH}px`;
                 await new Promise((r) => setTimeout(r, 100));
-
                 try {
-                    // Utilisation du nouveau moteur natif html-to-image
                     const blob = await htmlToImage.toBlob(canvasContainer, {
-                        backgroundColor: bgColor, // Fond blanc pur ou transparent selon le choix
-                        pixelRatio: 4, // Ultra HD (4K)
-                        width: exportWidth,
-                        height: exportHeight,
+                        backgroundColor: bC,
+                        pixelRatio: 4,
+                        width: eW,
+                        height: eH,
                     });
-
-                    // 3. Restauration immédiate du DOM normal (l'utilisateur ne voit qu'un "flash")
-                    canvasContainer.style.position = oldPosition;
-                    canvasContainer.style.width = oldWidth;
-                    canvasContainer.style.height = oldHeight;
-                    canvasContainer.style.zIndex = oldZIndex;
-                    canvasContainer.style.backgroundImage = oldBg;
-                    panX = oldPanX;
-                    panY = oldPanY;
+                    canvasContainer.style.cssText = containerStyle;
+                    panX = oPX;
+                    panY = oPY;
                     applyPan();
-
                     const reader = new FileReader();
-                    reader.onload = function (event) {
-                        const uint8Array = new Uint8Array(event.target.result);
-                        const encoder = new TextEncoder();
-
-                        const marker = encoder.encode("___LATEX_GRAPH_DATA___");
-                        const data = encoder.encode(jsonStr);
-
-                        const newBuffer = new Uint8Array(
-                            uint8Array.length + marker.length + data.length,
-                        );
-                        newBuffer.set(uint8Array, 0);
-                        newBuffer.set(marker, uint8Array.length);
-                        newBuffer.set(data, uint8Array.length + marker.length);
-
-                        const newBlob = new Blob([newBuffer], {
-                            type: "image/png",
-                        });
-                        const url = URL.createObjectURL(newBlob);
-
+                    reader.onload = function (ev) {
+                        const u8 = new Uint8Array(ev.target.result),
+                            enc = new TextEncoder(),
+                            m = enc.encode("___LATEX_GRAPH_DATA___"),
+                            d = enc.encode(jS),
+                            nB = new Uint8Array(
+                                u8.length + m.length + d.length,
+                            );
+                        nB.set(u8, 0);
+                        nB.set(m, u8.length);
+                        nB.set(d, u8.length + m.length);
                         const a = document.createElement("a");
-                        a.href = url;
+                        a.href = URL.createObjectURL(
+                            new Blob([nB], { type: "image/png" }),
+                        );
                         a.download = "graphe_latex.png";
                         a.click();
-                        URL.revokeObjectURL(url);
-                        btn.innerHTML = originalHTML;
+                        btn.innerHTML = oH;
                     };
                     reader.readAsArrayBuffer(blob);
-                } catch (e) {
-                    // Restauration en cas d'erreur
-                    canvasContainer.style.position = oldPosition;
-                    canvasContainer.style.width = oldWidth;
-                    canvasContainer.style.height = oldHeight;
-                    canvasContainer.style.zIndex = oldZIndex;
-                    canvasContainer.style.backgroundImage = oldBg;
-                    panX = oldPanX;
-                    panY = oldPanY;
+                } catch (err) {
+                    canvasContainer.style.cssText = containerStyle;
+                    panX = oPX;
+                    panY = oPY;
                     applyPan();
-
-                    console.error(e);
-                    alert("Erreur lors de la capture de l'image.");
-                    btn.innerHTML = originalHTML;
+                    btn.innerHTML = oH;
                 }
             }
-
-            document
-                .getElementById("file-input")
-                .addEventListener("change", function (e) {
-                    const file = e.target.files[0];
-                    if (!file) return;
-
-                    const reader = new FileReader();
-                    reader.onload = function (event) {
-                        const uint8Array = new Uint8Array(event.target.result);
-                        const decoder = new TextDecoder();
-                        const text = decoder.decode(uint8Array);
-
-                        const marker = "___LATEX_GRAPH_DATA___";
-                        const markerIndex = text.lastIndexOf(marker);
-
-                        if (markerIndex !== -1) {
-                            try {
-                                const jsonStr = text.substring(
-                                    markerIndex + marker.length,
-                                );
-                                const saveData = JSON.parse(jsonStr);
-
-                                applyGraphStateData(saveData);
-                                autoSaveToBrowser(); // On sauvegarde ce nouveau graphe chargé
-                            } catch (e) {
-                                alert(
-                                    "Erreur lors de la lecture du graphe depuis l'image.",
-                                );
-                            }
-                        } else {
-                            alert(
-                                "Ce fichier PNG ne contient pas de données de graphe compatibles.",
-                            );
-                        }
-                    };
-                    reader.readAsArrayBuffer(file);
-                    e.target.value = ""; // Réinitialisation
-                });
         </script>
     </body>
 </html>
