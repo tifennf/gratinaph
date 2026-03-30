@@ -872,23 +872,39 @@ GenHigh -&gt; Done : $\overline{GO} \land \text{CPT\_DONE}$</pre
                     let labelY = 0;
 
                     if (n1.id === n2.id) {
-                        const offset = 15;
-                        const heightOffset = Math.sqrt(
-                            Math.max(0, r1 * r1 - offset * offset),
-                        );
-                        const startX = n1.x - offset;
-                        const startY = n1.y - heightOffset;
-                        const endX = n1.x + offset;
-                        const endY = n1.y - heightOffset;
+                        // --- BOUCLE SUR LE MÊME ÉTAT (Dynamique et Rotative) ---
+                        // On définit un vecteur de "traction". Par défaut, vers le haut (0, -120).
+                        const px = 0 + offsetX;
+                        const py = -120 + offsetY;
 
-                        const cp1x = n1.x - 70 + offsetX;
-                        const cp1y = n1.y - 180 + offsetY;
-                        const cp2x = n1.x + 70 + offsetX;
-                        const cp2y = n1.y - 180 + offsetY;
+                        // Angle global de la boucle par rapport au centre du nœud
+                        const theta = Math.atan2(py, px);
+
+                        // Distance (longueur de la boucle). Limitée pour ne pas s'écraser.
+                        const dist = Math.max(60, Math.sqrt(px * px + py * py));
+
+                        // Points d'attache dynamiques glissant sur le bord du cercle
+                        const spread = 0.4; // Écartement de la base de la boucle (~23 degrés)
+                        const startX = n1.x + r1 * Math.cos(theta - spread);
+                        const startY = n1.y + r1 * Math.sin(theta - spread);
+                        const endX = n1.x + r1 * Math.cos(theta + spread);
+                        const endY = n1.y + r1 * Math.sin(theta + spread);
+
+                        // Points de contrôle de la courbe de Bézier (pour la forme en ballon)
+                        const cpDist = dist * 1.35;
+                        const cpSpread = 0.75;
+                        const cp1x = n1.x + cpDist * Math.cos(theta - cpSpread);
+                        const cp1y = n1.y + cpDist * Math.sin(theta - cpSpread);
+                        const cp2x = n1.x + cpDist * Math.cos(theta + cpSpread);
+                        const cp2y = n1.y + cpDist * Math.sin(theta + cpSpread);
 
                         pathData = `M ${startX} ${startY} C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${endX} ${endY}`;
-                        labelX = n1.x + offsetX + labelOffsetX;
-                        labelY = n1.y - 135 + offsetY + labelOffsetY;
+
+                        // Position du label ajustée dynamiquement au sommet
+                        labelX =
+                            n1.x + (dist + 15) * Math.cos(theta) + labelOffsetX;
+                        labelY =
+                            n1.y + (dist + 15) * Math.sin(theta) + labelOffsetY;
                     } else {
                         if (n1.x === n2.x && n1.y === n2.y) return;
 
