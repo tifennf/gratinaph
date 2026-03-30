@@ -1,0 +1,1070 @@
+<!doctype html>
+<html lang="fr">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Générateur de Graphe d'État - LaTeX</title>
+
+        <!-- Tailwind CSS pour le style de l'interface -->
+        <script src="https://cdn.tailwindcss.com"></script>
+
+        <!-- KaTeX pour le rendu LaTeX -->
+        <link
+            rel="stylesheet"
+            href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css"
+        />
+        <script src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
+
+        <!-- html-to-image pour une capture PNG parfaite (remplace html2canvas) -->
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/html-to-image/1.11.11/html-to-image.min.js"></script>
+
+        <style>
+            /* Styles spécifiques pour le canevas interactif */
+            #canvas-container {
+                background-image: radial-gradient(#cbd5e1 1px, transparent 1px);
+                background-size: 20px 20px;
+                cursor: grab;
+            }
+            #canvas-container:active {
+                cursor: grabbing;
+            }
+            .node {
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                text-align: center;
+                line-height: 1.2;
+                padding: 5px;
+                box-sizing: border-box;
+                word-wrap: break-word;
+                position: absolute;
+                transform: translate(-50%, -50%);
+                cursor: grab;
+                user-select: none;
+                box-shadow:
+                    0 4px 6px -1px rgb(0 0 0 / 0.1),
+                    0 2px 4px -2px rgb(0 0 0 / 0.1);
+                transition:
+                    box-shadow 0.2s,
+                    transform 0.1s;
+                pointer-events: auto;
+                z-index: 10;
+            }
+            .node-normal {
+                width: 90px;
+                height: 90px;
+            }
+            .node-initial {
+                width: 8px;
+                height: 8px;
+                background-color: #475569;
+                border: none;
+                box-shadow: none;
+            }
+            /* Zone de clic élargie pour attraper le petit point facilement */
+            .node-initial::after {
+                content: "";
+                position: absolute;
+                width: 40px;
+                height: 40px;
+                border-radius: 50%;
+                background: transparent;
+                transition: background 0.2s;
+            }
+            .node-initial:hover::after {
+                background: rgba(99, 102, 241, 0.1);
+            }
+            .node:active {
+                cursor: grabbing;
+            }
+            .edge-label {
+                position: absolute;
+                transform: translate(-50%, -50%);
+                pointer-events: auto; /* Rend le label cliquable */
+                cursor: grab;
+                z-index: 15;
+                background-color: #ffffff !important; /* FOND BLANC OPAQUE */
+                border: 1px solid #e2e8f0;
+                box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+                user-select: none;
+                white-space: nowrap; /* EMPÊCHE LE RETOUR À LA LIGNE */
+                width: max-content; /* ADAPTE LA BOÎTE EXACTEMENT AU TEXTE */
+            }
+            .edge-label:hover {
+                border-color: #4f46e5;
+                box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.2);
+            }
+            .edge-label:active {
+                cursor: grabbing;
+            }
+            svg {
+                pointer-events: none; /* Ignore les clics sur le fond transparent du SVG */
+            }
+
+            /* Amélioration visuelle pour attraper les flèches */
+            .edge-group {
+                cursor: grab;
+            }
+            .edge-group:active {
+                cursor: grabbing;
+            }
+            .edge-group:hover .visible-edge {
+                stroke: #4f46e5; /* Devient bleu indigo au survol */
+                stroke-width: 3.5px;
+            }
+
+            /* Amélioration du rendu des polices pour l'export HD */
+            body {
+                -webkit-font-smoothing: antialiased;
+                -moz-osx-font-smoothing: grayscale;
+                text-rendering: optimizeLegibility;
+            }
+
+            /* Masquer la barre de défilement du calque de coloration (elle est gérée par le textarea) */
+            #highlight-bg::-webkit-scrollbar {
+                display: none;
+            }
+            #highlight-bg {
+                -ms-overflow-style: none;
+                scrollbar-width: none;
+            }
+        </style>
+    </head>
+    <body class="h-screen flex flex-col bg-slate-50 text-slate-800 font-sans">
+        <!-- En-tête -->
+        <header
+            class="bg-indigo-600 text-white p-4 shadow-md flex justify-between items-center z-20"
+        >
+            <div>
+                <h1 class="text-xl font-bold flex items-center gap-2">
+                    <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="24"
+                        height="24"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                    >
+                        <circle cx="18" cy="5" r="3" />
+                        <circle cx="6" cy="12" r="3" />
+                        <circle cx="18" cy="19" r="3" />
+                        <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" />
+                        <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
+                    </svg>
+                    Générateur de Graphe d'État LaTeX
+                </h1>
+                <p class="text-indigo-200 text-sm mt-1">
+                    Éditez le code, glissez les bulles/flèches à droite.
+                </p>
+            </div>
+
+            <!-- Outils de Sauvegarde et Nav -->
+            <div class="flex gap-3 items-center">
+                <!-- Indicateur de sauvegarde silencieuse -->
+                <span
+                    id="save-indicator"
+                    class="text-indigo-200 text-sm font-medium opacity-0 transition-opacity duration-300 pointer-events-none"
+                >
+                    ✔ Sauvegardé
+                </span>
+
+                <!-- Lien vers la documentation -->
+                <a
+                    href="doc.html"
+                    target="_blank"
+                    title="Ouvrir le guide d'utilisation"
+                    class="bg-indigo-700 hover:bg-indigo-500 text-white px-4 py-2 rounded shadow text-sm font-semibold transition flex items-center gap-2 border border-indigo-500"
+                >
+                    <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="16"
+                        height="16"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                    >
+                        <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
+                        <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
+                    </svg>
+                    Documentation
+                </a>
+
+                <input
+                    type="file"
+                    id="file-input"
+                    accept="image/png"
+                    class="hidden"
+                />
+                <button
+                    onclick="document.getElementById('file-input').click()"
+                    class="bg-indigo-500 hover:bg-indigo-400 text-white px-4 py-2 rounded shadow text-sm font-semibold transition flex items-center gap-2"
+                >
+                    <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="16"
+                        height="16"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                    >
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                        <polyline points="7 10 12 15 17 10" />
+                        <line x1="12" y1="15" x2="12" y2="3" />
+                    </svg>
+                    Charger PNG
+                </button>
+
+                <div class="flex bg-indigo-800 rounded shadow">
+                    <select
+                        id="export-bg"
+                        class="bg-transparent text-white pl-3 pr-2 py-2 text-sm font-semibold outline-none cursor-pointer border-r border-indigo-600 hover:bg-indigo-700 transition rounded-l"
+                        title="Couleur de fond de l'export"
+                    >
+                        <option value="#ffffff" class="text-slate-800">
+                            ⬜ Blanc
+                        </option>
+                        <option value="transparent" class="text-slate-800">
+                            🏁 Transparent
+                        </option>
+                    </select>
+                    <button
+                        id="btn-export"
+                        onclick="exportGraphToPNG()"
+                        class="hover:bg-indigo-900 text-white px-4 py-2 rounded-r text-sm font-semibold transition flex items-center gap-2"
+                    >
+                        <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="16"
+                            height="16"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                        >
+                            <rect
+                                x="3"
+                                y="3"
+                                width="18"
+                                height="18"
+                                rx="2"
+                                ry="2"
+                            />
+                            <circle cx="8.5" cy="8.5" r="1.5" />
+                            <polyline points="21 15 16 10 5 21" />
+                        </svg>
+                        Exporter
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Zone principale -->
+        <main class="flex-1 flex overflow-hidden">
+            <!-- Panneau de gauche : Éditeur -->
+            <div
+                class="w-1/3 min-w-[300px] border-r border-slate-300 bg-white flex flex-col shadow-lg z-10"
+            >
+                <div
+                    class="bg-slate-100 p-2 border-b border-slate-200 text-xs font-semibold text-slate-500 uppercase tracking-wider flex justify-between"
+                >
+                    <span>Code source</span>
+                    <span class="text-slate-400"
+                        >Ctrl + S pour sauvegarder</span
+                    >
+                </div>
+                <div
+                    class="relative flex-1 bg-slate-50 overflow-hidden border-none"
+                >
+                    <!-- Arrière-plan pour la coloration syntaxique -->
+                    <pre
+                        id="highlight-bg"
+                        class="absolute inset-0 p-4 m-0 w-full h-full font-mono text-sm leading-normal whitespace-pre-wrap break-words pointer-events-none text-slate-800 z-0 overflow-auto"
+                        aria-hidden="true"
+                        style="tab-size: 4"
+                    ></pre>
+
+                    <!-- Éditeur de texte transparent superposé -->
+                    <textarea
+                        id="editor"
+                        spellcheck="false"
+                        class="absolute inset-0 p-4 m-0 w-full h-full font-mono text-sm leading-normal whitespace-pre-wrap break-words resize-none bg-transparent text-transparent caret-indigo-600 focus:outline-none border-none focus:ring-0 z-10"
+                        style="tab-size: 4"
+                    >
+// Graphique d'état personnalisé
+// Transitions  : Source -> Cible : $LaTeX$
+// État initial : [*] -> Cible
+// Couleurs     : color NomEtat #hexadecimal
+
+color Idle #a7f3d0
+color Done #fecaca
+
+[*] -> Idle : $\text{Reset}$
+Idle -> GenLow : $GO$
+GenLow -> GenLow : $\overline{GO}$
+GenLow -> GenHigh : $\text{reset}$
+GenHigh -> GenHigh : $\overline{\text{CPT\_DONE}}$
+GenHigh -> Done : $\overline{GO} \land \text{CPT\_DONE}$
+Done -> GenLow : $GO$
+Done -> Done : $\overline{GO}$
+</textarea
+                    >
+                </div>
+            </div>
+
+            <!-- Panneau de droite : Canevas -->
+            <div id="canvas-container" class="flex-1 relative overflow-hidden">
+                <!-- Le wrapper qui bouge avec le "Pan" -->
+                <div
+                    id="canvas-content"
+                    class="absolute inset-0 w-full h-full transform-gpu"
+                    style="transform-origin: 0 0"
+                >
+                    <!-- Couche SVG pour les flèches -->
+                    <svg
+                        id="edges"
+                        class="absolute inset-0 w-full h-full overflow-visible"
+                    >
+                        <defs>
+                            <marker
+                                id="arrow"
+                                viewBox="0 0 10 10"
+                                refX="9"
+                                refY="5"
+                                markerWidth="8"
+                                markerHeight="8"
+                                orient="auto-start-reverse"
+                            >
+                                <path
+                                    d="M 0 0 L 10 5 L 0 10 z"
+                                    fill="#64748b"
+                                />
+                            </marker>
+                        </defs>
+                        <g id="edges-group"></g>
+                    </svg>
+
+                    <!-- Couche pour les labels LaTeX -->
+                    <div
+                        id="labels"
+                        class="absolute inset-0 w-full h-full pointer-events-none"
+                    ></div>
+
+                    <!-- Couche pour les nœuds (états) -->
+                    <div
+                        id="nodes"
+                        class="absolute inset-0 w-full h-full pointer-events-none"
+                    ></div>
+                </div>
+            </div>
+        </main>
+
+        <script>
+            // --- ÉTAT DE L'APPLICATION ---
+            let state = {
+                nodes: {}, // { id: { id, x, y, el } }
+                edges: [], // [ { source, target, label, key } ]
+                colors: {}, // { id: color }
+                edgeMetas: {}, // { edgeKey: { offsetX, offsetY, labelOffsetX, labelOffsetY } }
+            };
+
+            // Variables pour la souris
+            let draggedNode = null;
+            let draggedEdgeKey = null;
+            let draggedLabelKey = null;
+            let isPanning = false;
+
+            let panX = 0,
+                panY = 0;
+            let lastMouseX = 0,
+                lastMouseY = 0;
+            let isInitialized = false;
+
+            const NODE_RADIUS = 47;
+
+            // Éléments du DOM
+            const editor = document.getElementById("editor");
+            const canvasContainer = document.getElementById("canvas-container");
+            const canvasContent = document.getElementById("canvas-content");
+            const nodesContainer = document.getElementById("nodes");
+            const labelsContainer = document.getElementById("labels");
+            const edgesGroup = document.getElementById("edges-group");
+            const saveIndicator = document.getElementById("save-indicator");
+            const highlightBg = document.getElementById("highlight-bg"); // Nouveau calque de coloration
+
+            // Initialisation par défaut
+            let initialPositions = {
+                "[*]": { x: 400, y: 20 },
+                Idle: { x: 400, y: 120 },
+                GenLow: { x: 250, y: 300 },
+                GenHigh: { x: 550, y: 300 },
+                Done: { x: 400, y: 500 },
+            };
+
+            // --- GESTION DES DONNÉES ET SAUVEGARDE LOCALE ---
+
+            // Extrait l'état actuel du graphe sous forme d'objet JSON pur
+            function getGraphStateData() {
+                const nodePositions = {};
+                for (let id in state.nodes) {
+                    nodePositions[id] = {
+                        x: state.nodes[id].x,
+                        y: state.nodes[id].y,
+                    };
+                }
+                return {
+                    code: editor.value,
+                    nodes: nodePositions,
+                    edgeMetas: state.edgeMetas,
+                    pan: { x: panX, y: panY },
+                };
+            }
+
+            // Applique un état chargé au graphe
+            function applyGraphStateData(saveData) {
+                editor.value = saveData.code;
+                updateHighlight(); // Mise à jour de la couleur
+                state.edgeMetas = saveData.edgeMetas || {};
+                if (saveData.pan) {
+                    panX = saveData.pan.x;
+                    panY = saveData.pan.y;
+                    applyPan();
+                }
+                for (let id in saveData.nodes) {
+                    initialPositions[id] = saveData.nodes[id];
+                }
+                isInitialized = false; // Force l'utilisation d'initialPositions lors du parse
+                parseCode();
+            }
+
+            // Sauvegarde transparente dans le navigateur
+            function autoSaveToBrowser() {
+                try {
+                    localStorage.setItem(
+                        "latex_state_graph_save",
+                        JSON.stringify(getGraphStateData()),
+                    );
+                } catch (e) {
+                    console.error("Erreur de sauvegarde locale:", e);
+                }
+            }
+
+            // Sauvegarde avec feedback visuel (pour Ctrl+S)
+            let saveTimeout;
+            function manualSaveFeedback() {
+                autoSaveToBrowser();
+                saveIndicator.classList.remove("opacity-0");
+                clearTimeout(saveTimeout);
+                saveTimeout = setTimeout(() => {
+                    saveIndicator.classList.add("opacity-0");
+                }, 2000);
+            }
+
+            // Interception du Ctrl+S ou Cmd+S
+            window.addEventListener("keydown", (e) => {
+                if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") {
+                    e.preventDefault(); // Empêche la fenêtre de sauvegarde du navigateur
+                    manualSaveFeedback();
+                }
+            });
+
+            // --- COLORATION SYNTAXIQUE (Custom Highlighter) ---
+            function updateHighlight() {
+                const text = editor.value;
+                // 1. Échapper les caractères HTML spéciaux pour ne pas casser la structure
+                let html = text
+                    .replace(/&/g, "&amp;")
+                    .replace(/</g, "&lt;")
+                    .replace(/>/g, "&gt;");
+
+                // 2. Appliquer les règles de coloration
+                html = html.replace(
+                    /(\/\/.*)|(\$.*?\$)|(-&gt;)|(\bcolor\b)|(#[0-9a-fA-F]{3,6})|(\[\*\])/g,
+                    function (match, p1, p2, p3, p4, p5, p6) {
+                        if (p1)
+                            return `<span class="text-slate-400 italic">${p1}</span>`; // Commentaires (Gris Italique)
+                        if (p2)
+                            return `<span class="text-amber-700 bg-amber-100 rounded px-1">${p2}</span>`; // LaTeX (Fond Orange)
+                        if (p3)
+                            return `<span class="text-indigo-500 font-bold">${p3}</span>`; // Flèches (Bleu indigo)
+                        if (p4)
+                            return `<span class="text-pink-600 font-bold">${p4}</span>`; // Mot clé 'color' (Rose)
+                        if (p5)
+                            return `<span class="text-emerald-600 font-bold">${p5}</span>`; // Hexa (Vert)
+                        if (p6)
+                            return `<span class="text-rose-500 font-bold">${p6}</span>`; // État initial (Rouge)
+                        return match;
+                    },
+                );
+
+                // 3. Correction d'un bug classique (permet de défiler correctement sur une ligne vide à la fin)
+                if (text.length > 0 && text[text.length - 1] === "\n") {
+                    html += "<br/>";
+                }
+
+                highlightBg.innerHTML = html;
+            }
+
+            // --- PARSEUR DU CODE ---
+            function parseCode() {
+                const text = editor.value;
+                const lines = text.split("\n");
+                const newEdges = [];
+                const newNodesSet = new Set();
+                state.colors = {};
+
+                const edgeCounts = {};
+
+                lines.forEach((line) => {
+                    line = line.trim();
+                    if (!line || line.startsWith("//")) return;
+
+                    const colorMatch = line.match(/^color\s+(\w+)\s+(.+)$/i);
+                    if (colorMatch) {
+                        state.colors[colorMatch[1]] = colorMatch[2];
+                        return;
+                    }
+
+                    const match = line.match(
+                        /^([\w]+|\[\*\])\s*->\s*([\w]+|\[\*\])(?:\s*:\s*(.*))?$/,
+                    );
+                    if (match) {
+                        const [_, source, target, label] = match;
+                        newNodesSet.add(source);
+                        newNodesSet.add(target);
+
+                        const baseKey = `${source}->${target}`;
+                        edgeCounts[baseKey] = (edgeCounts[baseKey] || 0) + 1;
+                        const key = `${baseKey}_${edgeCounts[baseKey]}`;
+
+                        newEdges.push({
+                            source,
+                            target,
+                            label: label || "",
+                            key,
+                        });
+                    }
+                });
+
+                const width = canvasContainer.clientWidth || 800;
+                const height = canvasContainer.clientHeight || 600;
+
+                Object.keys(state.nodes).forEach((id) => {
+                    if (!newNodesSet.has(id)) {
+                        state.nodes[id].el.remove();
+                        delete state.nodes[id];
+                    }
+                });
+
+                Array.from(newNodesSet).forEach((id) => {
+                    let nodeObj = state.nodes[id];
+
+                    if (!nodeObj) {
+                        let x, y;
+                        if (!isInitialized && initialPositions[id]) {
+                            x = initialPositions[id].x;
+                            y = initialPositions[id].y;
+                        } else {
+                            x = width / 2 - panX + (Math.random() - 0.5) * 100;
+                            y = height / 2 - panY + (Math.random() - 0.5) * 100;
+                        }
+
+                        const el = document.createElement("div");
+
+                        if (id === "[*]") {
+                            el.className = "node node-initial";
+                            el.textContent = "";
+                        } else {
+                            el.className =
+                                "node node-normal bg-indigo-100 border-2 border-indigo-400 text-indigo-900 font-bold";
+                            el.textContent = id;
+                        }
+
+                        el.dataset.id = id;
+
+                        el.addEventListener("mousedown", (e) => {
+                            e.stopPropagation();
+                            draggedNode = state.nodes[id];
+                            lastMouseX = e.clientX;
+                            lastMouseY = e.clientY;
+                        });
+
+                        nodesContainer.appendChild(el);
+                        nodeObj = { id, x, y, el };
+                        state.nodes[id] = nodeObj;
+                    }
+
+                    if (id !== "[*]") {
+                        nodeObj.el.style.backgroundColor =
+                            state.colors[id] || "#e0e7ff";
+                    }
+                });
+
+                state.edges = newEdges;
+                isInitialized = true;
+                render();
+            }
+
+            // --- MOTEUR DE RENDU ---
+            function render() {
+                Object.values(state.nodes).forEach((node) => {
+                    node.el.style.left = `${node.x}px`;
+                    node.el.style.top = `${node.y}px`;
+                });
+
+                let svgContent = "";
+                labelsContainer.innerHTML = "";
+
+                state.edges.forEach((edge) => {
+                    const n1 = state.nodes[edge.source];
+                    const n2 = state.nodes[edge.target];
+                    if (!n1 || !n2) return;
+
+                    const meta = state.edgeMetas[edge.key] || {
+                        offsetX: 0,
+                        offsetY: 0,
+                        labelOffsetX: 0,
+                        labelOffsetY: 0,
+                    };
+                    const offsetX = meta.offsetX || 0;
+                    const offsetY = meta.offsetY || 0;
+                    const labelOffsetX = meta.labelOffsetX || 0;
+                    const labelOffsetY = meta.labelOffsetY || 0;
+
+                    const r1 = n1.id === "[*]" ? 4 : 47;
+                    const r2 = n2.id === "[*]" ? 4 : 47;
+
+                    let pathData = "";
+                    let labelX = 0;
+                    let labelY = 0;
+
+                    if (n1.id === n2.id) {
+                        const offset = 15;
+                        const heightOffset = Math.sqrt(
+                            Math.max(0, r1 * r1 - offset * offset),
+                        );
+                        const startX = n1.x - offset;
+                        const startY = n1.y - heightOffset;
+                        const endX = n1.x + offset;
+                        const endY = n1.y - heightOffset;
+
+                        const cp1x = n1.x - 70 + offsetX;
+                        const cp1y = n1.y - 180 + offsetY;
+                        const cp2x = n1.x + 70 + offsetX;
+                        const cp2y = n1.y - 180 + offsetY;
+
+                        pathData = `M ${startX} ${startY} C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${endX} ${endY}`;
+                        labelX = n1.x + offsetX + labelOffsetX;
+                        labelY = n1.y - 135 + offsetY + labelOffsetY;
+                    } else {
+                        if (n1.x === n2.x && n1.y === n2.y) return;
+
+                        const dx = n2.x - n1.x;
+                        const dy = n2.y - n1.y;
+                        const dist = Math.sqrt(dx * dx + dy * dy);
+                        const nx = -dy / dist;
+                        const ny = dx / dist;
+
+                        const isBidi = state.edges.some(
+                            (e) => e.source === n2.id && e.target === n1.id,
+                        );
+                        let curveSize = isBidi ? 50 : 20;
+                        if (n1.id === "[*]") curveSize = 0;
+
+                        const cx = (n1.x + n2.x) / 2 + nx * curveSize + offsetX;
+                        const cy = (n1.y + n2.y) / 2 + ny * curveSize + offsetY;
+
+                        const angleLeave = Math.atan2(cy - n1.y, cx - n1.x);
+                        const startX = n1.x + r1 * Math.cos(angleLeave);
+                        const startY = n1.y + r1 * Math.sin(angleLeave);
+
+                        const angleEnter = Math.atan2(n2.y - cy, n2.x - cx);
+                        const endX = n2.x - r2 * Math.cos(angleEnter);
+                        const endY = n2.y - r2 * Math.sin(angleEnter);
+
+                        pathData = `M ${startX} ${startY} Q ${cx} ${cy} ${endX} ${endY}`;
+
+                        labelX =
+                            0.25 * startX +
+                            0.5 * cx +
+                            0.25 * endX +
+                            labelOffsetX;
+                        labelY =
+                            0.25 * startY +
+                            0.5 * cy +
+                            0.25 * endY +
+                            labelOffsetY;
+                    }
+
+                    svgContent += `
+                <g class="edge-group">
+                    <path d="${pathData}" fill="none" stroke="transparent" stroke-width="25" data-edge-key="${edge.key}" style="pointer-events: stroke; cursor: grab;"></path>
+                    <path d="${pathData}" fill="none" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)" class="visible-edge" style="pointer-events: none;"></path>
+                </g>`;
+
+                    if (edge.label) {
+                        const labelEl = document.createElement("div");
+                        labelEl.className =
+                            "edge-label px-2 py-1 rounded border border-slate-200 shadow-sm text-sm text-slate-700 transition-shadow";
+                        labelEl.style.left = `${labelX}px`;
+                        labelEl.style.top = `${labelY}px`;
+
+                        labelEl.addEventListener("mousedown", (e) => {
+                            e.stopPropagation();
+                            draggedLabelKey = edge.key;
+                            lastMouseX = e.clientX;
+                            lastMouseY = e.clientY;
+                        });
+
+                        if (edge.label.includes("$")) {
+                            try {
+                                const mathText = edge.label.replace(/\$/g, "");
+                                if (window.katex) {
+                                    katex.render(mathText, labelEl, {
+                                        throwOnError: false,
+                                    });
+                                } else {
+                                    labelEl.textContent = edge.label;
+                                }
+                            } catch (e) {
+                                labelEl.textContent = edge.label;
+                            }
+                        } else {
+                            labelEl.textContent = edge.label;
+                        }
+                        labelsContainer.appendChild(labelEl);
+                    }
+                });
+
+                edgesGroup.innerHTML = svgContent;
+            }
+
+            // --- GESTION DU PANNING ---
+            function applyPan() {
+                canvasContent.style.transform = `translate(${panX}px, ${panY}px)`;
+                canvasContainer.style.backgroundPosition = `${panX}px ${panY}px`;
+            }
+
+            // --- GESTION DES ÉVÉNEMENTS GLOBAUX ---
+
+            canvasContainer.addEventListener("mousedown", (e) => {
+                if (
+                    e.target.closest(".node") ||
+                    e.target.closest(".edge-label")
+                )
+                    return;
+                isPanning = true;
+                lastMouseX = e.clientX;
+                lastMouseY = e.clientY;
+            });
+
+            edgesGroup.addEventListener("mousedown", (e) => {
+                if (
+                    e.target.tagName.toLowerCase() === "path" &&
+                    e.target.hasAttribute("data-edge-key")
+                ) {
+                    e.stopPropagation();
+                    draggedEdgeKey = e.target.getAttribute("data-edge-key");
+                    lastMouseX = e.clientX;
+                    lastMouseY = e.clientY;
+                }
+            });
+
+            window.addEventListener("mousemove", (e) => {
+                if (draggedNode) {
+                    const rect = canvasContainer.getBoundingClientRect();
+                    draggedNode.x = e.clientX - rect.left - panX;
+                    draggedNode.y = e.clientY - rect.top - panY;
+                    render();
+                } else if (draggedLabelKey) {
+                    const dx = e.clientX - lastMouseX;
+                    const dy = e.clientY - lastMouseY;
+                    if (!state.edgeMetas[draggedLabelKey])
+                        state.edgeMetas[draggedLabelKey] = {
+                            offsetX: 0,
+                            offsetY: 0,
+                            labelOffsetX: 0,
+                            labelOffsetY: 0,
+                        };
+                    state.edgeMetas[draggedLabelKey].labelOffsetX =
+                        (state.edgeMetas[draggedLabelKey].labelOffsetX || 0) +
+                        dx;
+                    state.edgeMetas[draggedLabelKey].labelOffsetY =
+                        (state.edgeMetas[draggedLabelKey].labelOffsetY || 0) +
+                        dy;
+                    lastMouseX = e.clientX;
+                    lastMouseY = e.clientY;
+                    render();
+                } else if (draggedEdgeKey) {
+                    const dx = e.clientX - lastMouseX;
+                    const dy = e.clientY - lastMouseY;
+                    if (!state.edgeMetas[draggedEdgeKey])
+                        state.edgeMetas[draggedEdgeKey] = {
+                            offsetX: 0,
+                            offsetY: 0,
+                            labelOffsetX: 0,
+                            labelOffsetY: 0,
+                        };
+                    state.edgeMetas[draggedEdgeKey].offsetX += dx;
+                    state.edgeMetas[draggedEdgeKey].offsetY += dy;
+                    lastMouseX = e.clientX;
+                    lastMouseY = e.clientY;
+                    render();
+                } else if (isPanning) {
+                    const dx = e.clientX - lastMouseX;
+                    const dy = e.clientY - lastMouseY;
+                    panX += dx;
+                    panY += dy;
+                    lastMouseX = e.clientX;
+                    lastMouseY = e.clientY;
+                    applyPan();
+                }
+            });
+
+            window.addEventListener("mouseup", () => {
+                // Sauvegarde locale à chaque fois qu'on termine une action (déplacement, pan)
+                if (
+                    draggedNode ||
+                    draggedEdgeKey ||
+                    draggedLabelKey ||
+                    isPanning
+                ) {
+                    autoSaveToBrowser();
+                }
+
+                draggedNode = null;
+                draggedEdgeKey = null;
+                draggedLabelKey = null;
+                isPanning = false;
+            });
+
+            editor.addEventListener("input", () => {
+                updateHighlight(); // Met à jour les couleurs en tapant
+                parseCode();
+                autoSaveToBrowser(); // Sauvegarde locale pendant l'édition
+            });
+
+            // Synchroniser le défilement (scroll) entre le texte transparent et le fond coloré
+            editor.addEventListener("scroll", () => {
+                highlightBg.scrollTop = editor.scrollTop;
+                highlightBg.scrollLeft = editor.scrollLeft;
+            });
+
+            // Chargement initial ou récupération de la sauvegarde
+            window.addEventListener("load", () => {
+                setTimeout(() => {
+                    const savedState = localStorage.getItem(
+                        "latex_state_graph_save",
+                    );
+                    if (savedState) {
+                        try {
+                            applyGraphStateData(JSON.parse(savedState));
+                        } catch (e) {
+                            parseCode();
+                            updateHighlight();
+                        }
+                    } else {
+                        parseCode();
+                        updateHighlight();
+                    }
+                }, 100);
+            });
+
+            // --- SAUVEGARDE ET CHARGEMENT EXPORT (PNG Magique) ---
+
+            async function exportGraphToPNG() {
+                const btn = document.getElementById("btn-export");
+                const originalHTML = btn.innerHTML;
+                btn.innerHTML = `⏳ Génération...`;
+
+                const bgColor = document.getElementById("export-bg").value;
+
+                const saveData = getGraphStateData();
+                const jsonStr = JSON.stringify(saveData);
+
+                // 1. Calcul de la Bounding Box (boîte englobante) pour centrer parfaitement
+                let minX = Infinity,
+                    minY = Infinity,
+                    maxX = -Infinity,
+                    maxY = -Infinity;
+                Object.values(state.nodes).forEach((n) => {
+                    const r = n.id === "[*]" ? 10 : 50;
+                    minX = Math.min(minX, n.x - r);
+                    minY = Math.min(minY, n.y - r);
+                    maxX = Math.max(maxX, n.x + r);
+                    maxY = Math.max(maxY, n.y + r);
+                });
+
+                // Prendre en compte les labels pour ne pas les couper
+                Array.from(labelsContainer.children).forEach((lbl) => {
+                    const lx = parseFloat(lbl.style.left);
+                    const ly = parseFloat(lbl.style.top);
+                    if (!isNaN(lx) && !isNaN(ly)) {
+                        // Calcul basé sur la VRAIE taille du texte à l'écran
+                        const halfW = lbl.offsetWidth / 2 || 70;
+                        const halfH = lbl.offsetHeight / 2 || 20;
+                        minX = Math.min(minX, lx - halfW);
+                        minY = Math.min(minY, ly - halfH);
+                        maxX = Math.max(maxX, lx + halfW);
+                        maxY = Math.max(maxY, ly + halfH);
+                    }
+                });
+
+                if (minX === Infinity) {
+                    minX = 0;
+                    minY = 0;
+                    maxX = 500;
+                    maxY = 500;
+                }
+
+                const padding = 80;
+                minX -= padding;
+                minY -= padding;
+                maxX += padding;
+                maxY += padding;
+
+                const exportWidth = maxX - minX;
+                const exportHeight = maxY - minY;
+
+                // 2. Préparation du DOM (Détachement temporaire pour éviter la coupe du navigateur)
+                const oldPanX = panX;
+                const oldPanY = panY;
+                const oldBg = canvasContainer.style.backgroundImage;
+                const oldPosition = canvasContainer.style.position;
+                const oldWidth = canvasContainer.style.width;
+                const oldHeight = canvasContainer.style.height;
+                const oldZIndex = canvasContainer.style.zIndex;
+
+                // On centre la caméra exactement sur notre boîte englobante
+                panX = -minX;
+                panY = -minY;
+                applyPan();
+                canvasContainer.style.backgroundImage = "none";
+
+                // On force la taille du conteneur pour simuler un écran de la taille exacte du graphe
+                canvasContainer.style.position = "fixed";
+                canvasContainer.style.top = "0";
+                canvasContainer.style.left = "0";
+                canvasContainer.style.width = `${exportWidth}px`;
+                canvasContainer.style.height = `${exportHeight}px`;
+                canvasContainer.style.zIndex = "9999";
+
+                // Petit délai pour laisser le navigateur appliquer la nouvelle taille (évite les bugs)
+                await new Promise((r) => setTimeout(r, 100));
+
+                try {
+                    // Utilisation du nouveau moteur natif html-to-image
+                    const blob = await htmlToImage.toBlob(canvasContainer, {
+                        backgroundColor: bgColor, // Fond blanc pur ou transparent selon le choix
+                        pixelRatio: 4, // Ultra HD (4K)
+                        width: exportWidth,
+                        height: exportHeight,
+                    });
+
+                    // 3. Restauration immédiate du DOM normal (l'utilisateur ne voit qu'un "flash")
+                    canvasContainer.style.position = oldPosition;
+                    canvasContainer.style.width = oldWidth;
+                    canvasContainer.style.height = oldHeight;
+                    canvasContainer.style.zIndex = oldZIndex;
+                    canvasContainer.style.backgroundImage = oldBg;
+                    panX = oldPanX;
+                    panY = oldPanY;
+                    applyPan();
+
+                    const reader = new FileReader();
+                    reader.onload = function (event) {
+                        const uint8Array = new Uint8Array(event.target.result);
+                        const encoder = new TextEncoder();
+
+                        const marker = encoder.encode("___LATEX_GRAPH_DATA___");
+                        const data = encoder.encode(jsonStr);
+
+                        const newBuffer = new Uint8Array(
+                            uint8Array.length + marker.length + data.length,
+                        );
+                        newBuffer.set(uint8Array, 0);
+                        newBuffer.set(marker, uint8Array.length);
+                        newBuffer.set(data, uint8Array.length + marker.length);
+
+                        const newBlob = new Blob([newBuffer], {
+                            type: "image/png",
+                        });
+                        const url = URL.createObjectURL(newBlob);
+
+                        const a = document.createElement("a");
+                        a.href = url;
+                        a.download = "graphe_latex.png";
+                        a.click();
+                        URL.revokeObjectURL(url);
+                        btn.innerHTML = originalHTML;
+                    };
+                    reader.readAsArrayBuffer(blob);
+                } catch (e) {
+                    // Restauration en cas d'erreur
+                    canvasContainer.style.position = oldPosition;
+                    canvasContainer.style.width = oldWidth;
+                    canvasContainer.style.height = oldHeight;
+                    canvasContainer.style.zIndex = oldZIndex;
+                    canvasContainer.style.backgroundImage = oldBg;
+                    panX = oldPanX;
+                    panY = oldPanY;
+                    applyPan();
+
+                    console.error(e);
+                    alert("Erreur lors de la capture de l'image.");
+                    btn.innerHTML = originalHTML;
+                }
+            }
+
+            document
+                .getElementById("file-input")
+                .addEventListener("change", function (e) {
+                    const file = e.target.files[0];
+                    if (!file) return;
+
+                    const reader = new FileReader();
+                    reader.onload = function (event) {
+                        const uint8Array = new Uint8Array(event.target.result);
+                        const decoder = new TextDecoder();
+                        const text = decoder.decode(uint8Array);
+
+                        const marker = "___LATEX_GRAPH_DATA___";
+                        const markerIndex = text.lastIndexOf(marker);
+
+                        if (markerIndex !== -1) {
+                            try {
+                                const jsonStr = text.substring(
+                                    markerIndex + marker.length,
+                                );
+                                const saveData = JSON.parse(jsonStr);
+
+                                applyGraphStateData(saveData);
+                                autoSaveToBrowser(); // On sauvegarde ce nouveau graphe chargé
+                            } catch (e) {
+                                alert(
+                                    "Erreur lors de la lecture du graphe depuis l'image.",
+                                );
+                            }
+                        } else {
+                            alert(
+                                "Ce fichier PNG ne contient pas de données de graphe compatibles.",
+                            );
+                        }
+                    };
+                    reader.readAsArrayBuffer(file);
+                    e.target.value = ""; // Réinitialisation
+                });
+        </script>
+    </body>
+</html>

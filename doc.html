@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Documentation - Générateur de Graphe d'État</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- KaTeX pour le rendu LaTeX dans la doc -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js" onload="renderMathInDoc()"></script>
+
+    <style>
+        /* Styles pour les blocs de code */
+        pre {
+            background-color: #1e293b;
+            color: #e2e8f0;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            overflow-x: auto;
+            font-family: monospace;
+            font-size: 0.875rem;
+            line-height: 1.5;
+            margin-top: 0.5rem;
+            margin-bottom: 1.5rem;
+        }
+        .keyword { color: #ec4899; font-weight: bold; } /* pink-500 */
+        .arrow { color: #818cf8; font-weight: bold; } /* indigo-400 */
+        .latex { color: #fcd34d; } /* amber-300 */
+        .comment { color: #94a3b8; font-style: italic; } /* slate-400 */
+        .color-val { color: #10b981; } /* emerald-500 */
+        .initial { color: #f43f5e; font-weight: bold; } /* rose-500 */
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans leading-relaxed">
+
+    <!-- En-tête -->
+    <header class="bg-indigo-600 text-white p-6 shadow-md">
+        <div class="max-w-4xl mx-auto flex justify-between items-center">
+            <div>
+                <h1 class="text-2xl font-bold flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+                    Guide d'utilisation
+                </h1>
+                <p class="text-indigo-200 mt-1 text-sm">Générateur de Graphe d'État avec LaTeX</p>
+            </div>
+            <a href="index.html" class="bg-indigo-500 hover:bg-indigo-400 px-4 py-2 rounded text-sm font-semibold transition flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+                Retour à l'éditeur
+            </a>
+        </div>
+    </header>
+
+    <!-- Contenu -->
+    <main class="max-w-4xl mx-auto p-6 mt-4">
+        
+        <div class="bg-white rounded-lg shadow-sm border border-slate-200 p-8">
+            <h2 class="text-3xl font-extrabold text-slate-900 mb-6">Comment créer votre graphe ?</h2>
+            <p class="mb-8 text-slate-600">
+                Cet outil a été conçu pour allier la rapidité d'écriture du code source (façon Graphviz/Mermaid) 
+                avec la flexibilité d'un outil de dessin interactif, tout en produisant une typographie mathématique parfaite grâce à LaTeX.
+            </p>
+
+            <hr class="my-8 border-slate-200">
+
+            <!-- Section 1 : Syntaxe -->
+            <section class="mb-10">
+                <h3 class="text-xl font-bold text-indigo-700 mb-4 flex items-center gap-2">
+                    <span class="bg-indigo-100 text-indigo-700 w-8 h-8 rounded-full flex items-center justify-center text-sm">1</span>
+                    Syntaxe de base et Transitions
+                </h3>
+                <p class="mb-4">Pour créer des états et les relier, utilisez simplement une flèche <code>-></code>. L'outil créera automatiquement les bulles correspondantes si elles n'existent pas.</p>
+                <pre><span class="comment">// Syntaxe : ÉtatSource -> ÉtatCible</span>
+Idle <span class="arrow">-></span> GenLow
+GenLow <span class="arrow">-></span> GenLow</pre>
+            </section>
+
+            <!-- Section 2 : État Initial -->
+            <section class="mb-10">
+                <h3 class="text-xl font-bold text-indigo-700 mb-4 flex items-center gap-2">
+                    <span class="bg-indigo-100 text-indigo-700 w-8 h-8 rounded-full flex items-center justify-center text-sm">2</span>
+                    L'état initial (Reset global)
+                </h3>
+                <p class="mb-4">Pour symboliser le point d'entrée de votre système (le moment où la machine s'allume), utilisez la syntaxe spéciale <code>[*]</code>. Cela générera un petit point noir discret.</p>
+                <pre><span class="comment">// Fait apparaître une flèche depuis "nulle part" vers Idle</span>
+<span class="initial">[*]</span> <span class="arrow">-></span> Idle</pre>
+            </section>
+
+            <!-- Section 3 : LaTeX -->
+            <section class="mb-10">
+                <h3 class="text-xl font-bold text-indigo-700 mb-4 flex items-center gap-2">
+                    <span class="bg-indigo-100 text-indigo-700 w-8 h-8 rounded-full flex items-center justify-center text-sm">3</span>
+                    Étiquettes avec formules LaTeX
+                </h3>
+                <p class="mb-4">
+                    Ajoutez un deux-points <code>:</code> après votre transition, puis encadrez votre formule mathématique avec des symboles dollar <code>$</code>.
+                </p>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div class="bg-slate-50 p-4 rounded border border-slate-200">
+                        <code class="text-sm font-mono text-slate-700">$\text{Reset}$</code>
+                        <div class="mt-2 text-sm text-slate-500">Affiche du texte normal (non italique).</div>
+                    </div>
+                    <div class="bg-slate-50 p-4 rounded border border-slate-200">
+                        <code class="text-sm font-mono text-slate-700">$\overline{GO}$</code>
+                        <div class="mt-2 text-sm text-slate-500">Ajoute une barre de négation au-dessus (Not GO).</div>
+                    </div>
+                    <div class="bg-slate-50 p-4 rounded border border-slate-200">
+                        <code class="text-sm font-mono text-slate-700">$\land$ / $\lor$</code>
+                        <div class="mt-2 text-sm text-slate-500">Symboles logiques "ET" (<span class="math-render">\land</span>) et "OU" (<span class="math-render">\lor</span>).</div>
+                    </div>
+                    <div class="bg-slate-50 p-4 rounded border border-slate-200">
+                        <code class="text-sm font-mono text-slate-700">$A_{1} + B^{2}$</code>
+                        <div class="mt-2 text-sm text-slate-500">Indices et exposants classiques.</div>
+                    </div>
+                </div>
+                <pre>Idle <span class="arrow">-></span> GenLow : <span class="latex">$GO$</span>
+GenHigh <span class="arrow">-></span> Done : <span class="latex">$\overline{GO} \land \text{CPT\_DONE}$</span></pre>
+                <p class="text-sm text-amber-600 bg-amber-50 p-3 rounded-md border border-amber-200 mt-2">
+                    <strong>Note :</strong> Si vous utilisez l'underscore <code>_</code> pour du texte (comme CPT_DONE), pensez à l'échapper en LaTeX avec un antislash : <code>\_</code>, sinon LaTeX l'interprétera comme un indice !
+                </p>
+            </section>
+
+            <!-- Section 4 : Couleurs -->
+            <section class="mb-10">
+                <h3 class="text-xl font-bold text-indigo-700 mb-4 flex items-center gap-2">
+                    <span class="bg-indigo-100 text-indigo-700 w-8 h-8 rounded-full flex items-center justify-center text-sm">4</span>
+                    Coloration des états
+                </h3>
+                <p class="mb-4">Personnalisez le fond de vos bulles avec le mot-clé <code>color</code>, suivi du nom de l'état, puis d'un code couleur Hexadécimal ou d'un nom de couleur web (red, lightblue...).</p>
+                <pre><span class="keyword">color</span> Idle <span class="color-val">#a7f3d0</span>
+<span class="keyword">color</span> Done <span class="color-val">pink</span></pre>
+            </section>
+
+            <hr class="my-8 border-slate-200">
+
+            <!-- Section 5 : Interactions -->
+            <section class="mb-10">
+                <h3 class="text-2xl font-extrabold text-slate-900 mb-6">Manipulation visuelle du graphe</h3>
+                <div class="space-y-4 text-slate-700">
+                    <div class="flex items-start gap-3">
+                        <div class="mt-1 bg-slate-200 p-1.5 rounded text-slate-600">🖐️</div>
+                        <div>
+                            <strong>Déplacer les états :</strong> Cliquez et glissez n'importe quelle bulle (y compris le point initial). Les flèches s'adapteront automatiquement avec des calculs trigonométriques pour s'arrêter parfaitement sur les bords.
+                        </div>
+                    </div>
+                    <div class="flex items-start gap-3">
+                        <div class="mt-1 bg-slate-200 p-1.5 rounded text-slate-600">➰</div>
+                        <div>
+                            <strong>Tordre les flèches :</strong> Passez votre souris sur la ligne d'une flèche (elle deviendra bleue et épaisse). Cliquez et glissez pour modifier la courbure de la flèche afin d'éviter les croisements disgracieux.
+                        </div>
+                    </div>
+                    <div class="flex items-start gap-3">
+                        <div class="mt-1 bg-slate-200 p-1.5 rounded text-slate-600">🏷️</div>
+                        <div>
+                            <strong>Déplacer les étiquettes :</strong> Si un texte LaTeX chevauche une autre ligne, attrapez directement l'étiquette (le texte avec le fond blanc) et déplacez-la. Elle glissera indépendamment de sa flèche d'origine !
+                        </div>
+                    </div>
+                    <div class="flex items-start gap-3">
+                        <div class="mt-1 bg-slate-200 p-1.5 rounded text-slate-600">🗺️</div>
+                        <div>
+                            <strong>Naviguer dans l'espace (Pan) :</strong> Cliquez n'importe où sur le fond pointillé gris et glissez pour déplacer l'ensemble de la caméra. Utile si votre diagramme devient très grand.
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <hr class="my-8 border-slate-200">
+
+            <!-- Section 6 : Sauvegarde -->
+            <section>
+                <h3 class="text-2xl font-extrabold text-slate-900 mb-6">Sauvegarde et Export "Magique"</h3>
+                
+                <h4 class="font-bold text-slate-800 mb-2">1. La sauvegarde automatique silencieuse</h4>
+                <p class="mb-4 text-slate-600">Vous n'avez (presque) rien à faire. À chaque fois que vous tapez une lettre ou que vous relâchez votre souris après un déplacement, l'outil sauvegarde tout dans votre navigateur. <strong>Même si vous fermez l'onglet par accident, vous retrouverez votre travail en revenant sur la page.</strong> Vous pouvez aussi utiliser <code>Ctrl + S</code> pour forcer la sauvegarde et vous rassurer.</p>
+
+                <h4 class="font-bold text-slate-800 mb-2 mt-6">2. L'export PNG Stéganographique (La magie)</h4>
+                <p class="mb-4 text-slate-600">
+                    Le bouton <strong>Exporter PNG</strong> ne génère pas qu'une simple image HD de votre graphe. Il cache discrètement tout le code source, les couleurs et les positions exactes de vos flèches <strong>à l'intérieur du fichier image</strong> (sans altérer l'image !).
+                </p>
+                <div class="bg-indigo-50 border-l-4 border-indigo-500 p-4 rounded-r text-indigo-900">
+                    <strong>Pour reprendre un vieux travail :</strong> Utilisez simplement le bouton <strong>Charger PNG</strong>, sélectionnez l'image que vous aviez exportée par le passé, et l'éditeur restaurera instantanément votre code source et l'emplacement exact de chaque bulle et flèche !
+                </div>
+            </section>
+
+        </div>
+        
+        <footer class="mt-8 mb-12 text-center text-sm text-slate-400">
+            Générateur de Graphe d'État LaTeX - Conçu pour les rapports techniques esthétiques.
+        </footer>
+    </main>
+
+    <!-- Script pour rendre les petits exemples mathématiques dans la doc -->
+    <script>
+        function renderMathInDoc() {
+            const mathElements = document.querySelectorAll('.math-render');
+            mathElements.forEach(el => {
+                katex.render(el.textContent, el, { throwOnError: false });
+            });
+        }
+    </script>
+</body>
+</html>
