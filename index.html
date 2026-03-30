@@ -172,10 +172,9 @@
                     ✔ Sauvegardé
                 </span>
 
-                <!-- Lien vers la documentation -->
-                <a
-                    href="doc.html"
-                    target="_blank"
+                <!-- Lien vers la documentation (Modifié pour ouvrir la modale) -->
+                <button
+                    onclick="toggleDoc(true)"
                     title="Ouvrir le guide d'utilisation"
                     class="bg-indigo-700 hover:bg-indigo-500 text-white px-4 py-2 rounded shadow text-sm font-semibold transition flex items-center gap-2 border border-indigo-500"
                 >
@@ -194,7 +193,7 @@
                         <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
                     </svg>
                     Documentation
-                </a>
+                </button>
 
                 <input
                     type="file"
@@ -370,7 +369,230 @@ Done -> Done : $\overline{GO}$
             </div>
         </main>
 
+        <!-- Fenêtre Modale de Documentation -->
+        <div
+            id="doc-modal"
+            class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4 transition-opacity duration-300 opacity-0"
+        >
+            <div
+                id="doc-container"
+                class="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col transform scale-95 transition-transform duration-300"
+            >
+                <!-- Header de la modale -->
+                <div
+                    class="flex justify-between items-center p-6 border-b border-slate-200 bg-slate-50 rounded-t-xl"
+                >
+                    <h2
+                        class="text-2xl font-bold text-slate-800 flex items-center gap-2"
+                    >
+                        <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="28"
+                            height="28"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            class="text-indigo-600"
+                        >
+                            <path
+                                d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"
+                            />
+                            <path
+                                d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"
+                            />
+                        </svg>
+                        Guide d'utilisation
+                    </h2>
+                    <button
+                        onclick="toggleDoc(false)"
+                        class="text-slate-400 hover:text-slate-600 transition bg-slate-200 hover:bg-slate-300 p-2 rounded-full"
+                    >
+                        <svg
+                            width="20"
+                            height="20"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                        >
+                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                        </svg>
+                    </button>
+                </div>
+
+                <!-- Contenu de la modale -->
+                <div
+                    class="p-6 overflow-y-auto flex-1 text-slate-700 space-y-8"
+                >
+                    <p class="text-lg">
+                        Cet outil allie la rapidité d'écriture du code source
+                        (façon Graphviz/Mermaid) avec la flexibilité d'un outil
+                        de dessin interactif, tout en produisant une typographie
+                        mathématique parfaite grâce à LaTeX.
+                    </p>
+
+                    <section>
+                        <h3
+                            class="text-xl font-bold text-indigo-700 mb-3 border-b pb-2"
+                        >
+                            1. Syntaxe et Transitions
+                        </h3>
+                        <p class="mb-2">
+                            Pour créer des états et les relier, utilisez une
+                            flèche <code>-&gt;</code>.
+                        </p>
+                        <pre
+                            class="bg-slate-800 text-slate-200 p-3 rounded font-mono text-sm"
+                        >
+Idle -&gt; GenLow
+GenLow -&gt; GenLow</pre
+                        >
+                    </section>
+
+                    <section>
+                        <h3
+                            class="text-xl font-bold text-indigo-700 mb-3 border-b pb-2"
+                        >
+                            2. État Initial (Reset)
+                        </h3>
+                        <p class="mb-2">
+                            Utilisez <code>[*]</code> pour générer un petit
+                            point noir discret symbolisant le début du graphe.
+                        </p>
+                        <pre
+                            class="bg-slate-800 text-slate-200 p-3 rounded font-mono text-sm"
+                        >
+[*] -&gt; Idle : $\text{Reset}$</pre
+                        >
+                    </section>
+
+                    <section>
+                        <h3
+                            class="text-xl font-bold text-indigo-700 mb-3 border-b pb-2"
+                        >
+                            3. Étiquettes avec formules LaTeX
+                        </h3>
+                        <p class="mb-2">
+                            Ajoutez un deux-points <code>:</code> après votre
+                            transition, puis encadrez votre formule mathématique
+                            avec des symboles dollar <code>$</code>.
+                        </p>
+                        <ul class="list-disc pl-6 space-y-2 mb-4">
+                            <li><code>$\text{Reset}$</code> : Texte normal</li>
+                            <li>
+                                <code>$\overline{GO}$</code> : Négation logique
+                            </li>
+                            <li>
+                                <code>$\land$ / $\lor$</code> : Symboles
+                                logiques "ET" (<span class="math-render"
+                                    >\land</span
+                                >) et "OU" (<span class="math-render">\lor</span
+                                >)
+                            </li>
+                        </ul>
+                        <pre
+                            class="bg-slate-800 text-slate-200 p-3 rounded font-mono text-sm"
+                        >
+GenHigh -&gt; Done : $\overline{GO} \land \text{CPT\_DONE}$</pre
+                        >
+                    </section>
+
+                    <section>
+                        <h3
+                            class="text-xl font-bold text-indigo-700 mb-3 border-b pb-2"
+                        >
+                            4. Manipulation visuelle (Drag & Drop)
+                        </h3>
+                        <ul class="list-disc pl-6 space-y-2">
+                            <li>
+                                <strong>Déplacer :</strong> Cliquez et glissez
+                                les bulles.
+                            </li>
+                            <li>
+                                <strong>Tordre les flèches :</strong> Passez la
+                                souris sur une ligne (elle devient bleue) puis
+                                glissez pour courber la flèche.
+                            </li>
+                            <li>
+                                <strong>Déplacer les étiquettes :</strong>
+                                Glissez directement le texte blanc pour le
+                                décaler de sa flèche.
+                            </li>
+                            <li>
+                                <strong>Naviguer (Pan) :</strong> Glissez le
+                                fond de l'écran pour vous déplacer.
+                            </li>
+                        </ul>
+                    </section>
+
+                    <section>
+                        <h3
+                            class="text-xl font-bold text-indigo-700 mb-3 border-b pb-2"
+                        >
+                            5. Magie de l'Export PNG
+                        </h3>
+                        <p>
+                            Le bouton <strong>Exporter PNG</strong> cache
+                            discrètement votre code source
+                            <strong>à l'intérieur de l'image</strong>. Utilisez
+                            <strong>Charger PNG</strong> avec cette image pour
+                            retrouver instantanément votre graphe complet,
+                            modifiable avec la position exacte des éléments !
+                        </p>
+                    </section>
+                </div>
+            </div>
+        </div>
+
         <script>
+            // --- GESTION DE LA MODALE DE DOCUMENTATION ---
+            function toggleDoc(show) {
+                const modal = document.getElementById("doc-modal");
+                const container = document.getElementById("doc-container");
+
+                if (show) {
+                    modal.classList.remove("hidden");
+                    // Force un "reflow" pour que la transition d'opacité fonctionne
+                    void modal.offsetWidth;
+                    modal.classList.remove("opacity-0");
+                    container.classList.remove("scale-95");
+
+                    // Rendu des formules mathématiques dans la doc si pas encore fait
+                    document
+                        .querySelectorAll(".math-render:not(.rendered)")
+                        .forEach((el) => {
+                            if (window.katex) {
+                                katex.render(el.textContent, el, {
+                                    throwOnError: false,
+                                });
+                                el.classList.add("rendered");
+                            }
+                        });
+                } else {
+                    modal.classList.add("opacity-0");
+                    container.classList.add("scale-95");
+                    // Attend la fin de la transition pour masquer (300ms)
+                    setTimeout(() => {
+                        modal.classList.add("hidden");
+                    }, 300);
+                }
+            }
+
+            // Fermer la modale en cliquant en dehors
+            document
+                .getElementById("doc-modal")
+                .addEventListener("mousedown", function (e) {
+                    if (e.target === this) {
+                        toggleDoc(false);
+                    }
+                });
+
             // --- ÉTAT DE L'APPLICATION ---
             let state = {
                 nodes: {}, // { id: { id, x, y, el } }
