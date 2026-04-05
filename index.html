@@ -50,6 +50,13 @@
                 height: 8px;
                 background-color: #475569;
                 border: none;
+                box-shadow: 0 0 0 0 rgba(71, 85, 105, 0);
+                transition:
+                    box-shadow 0.2s ease-out,
+                    transform 0.1s;
+            }
+            .node-initial:hover {
+                box-shadow: 0 0 0 10px rgba(71, 85, 105, 0.25);
             }
             .node-initial::after {
                 content: "";
@@ -92,6 +99,9 @@
             #highlight-bg {
                 scrollbar-width: none;
             }
+            #resizer {
+                touch-action: none;
+            }
         </style>
     </head>
     <body class="h-screen flex flex-col bg-slate-50 text-slate-800 font-sans">
@@ -110,6 +120,7 @@
                         stroke-width="2"
                         stroke-linecap="round"
                         stroke-linejoin="round"
+                        class="hidden sm:block"
                     >
                         <circle cx="18" cy="5" r="3" />
                         <circle cx="6" cy="12" r="3" />
@@ -117,21 +128,67 @@
                         <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" />
                         <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
                     </svg>
-                    Générateur de Graphe d'État LaTeX
+                    <span class="hidden xl:inline"
+                        >Générateur de Graphe d'État</span
+                    >
+                    <button
+                        id="current-graph-label"
+                        onclick="toggleGraphs(true)"
+                        class="ml-2 text-sm font-normal bg-indigo-800/80 hover:bg-indigo-700 px-3 py-1 rounded-full cursor-pointer transition border border-indigo-500/50 shadow-inner flex items-center gap-1"
+                        title="Changer de graphe"
+                    >
+                        Chargement...
+                        <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="14"
+                            height="14"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                        >
+                            <path d="m6 9 6 6 6-6" />
+                        </svg>
+                    </button>
                 </h1>
             </div>
 
-            <div class="flex gap-3 items-center">
+            <div class="flex gap-2 items-center flex-wrap justify-end">
                 <span
                     id="save-indicator"
-                    class="text-indigo-200 text-sm font-medium opacity-0 transition-opacity duration-300 pointer-events-none"
+                    class="text-indigo-200 text-sm font-medium opacity-0 transition-opacity duration-300 pointer-events-none absolute right-4 top-16 sm:static"
                     >✔ Sauvegardé</span
                 >
 
                 <button
+                    onclick="toggleGraphs(true)"
+                    title="Gérer les graphes sauvegardés"
+                    class="bg-indigo-700 hover:bg-indigo-500 text-white px-3 py-2 rounded shadow text-sm font-semibold transition flex items-center gap-2 border border-indigo-500"
+                >
+                    <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="16"
+                        height="16"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                    >
+                        <path
+                            d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"
+                        />
+                    </svg>
+                    <span class="hidden md:inline">Graphes</span>
+                </button>
+
+                <button
                     onclick="resetLayout()"
                     title="Réorganiser proprement le graphe"
-                    class="bg-indigo-700 hover:bg-indigo-500 text-white px-4 py-2 rounded shadow text-sm font-semibold transition flex items-center gap-2 border border-indigo-500"
+                    class="bg-indigo-700 hover:bg-indigo-500 text-white px-3 py-2 rounded shadow text-sm font-semibold transition flex items-center gap-2 border border-indigo-500"
                 >
                     <svg
                         xmlns="http://www.w3.org/2000/svg"
@@ -153,13 +210,13 @@
                         />
                         <path d="M16 16h5v5" />
                     </svg>
-                    Réorganiser
+                    <span class="hidden md:inline">Réorganiser</span>
                 </button>
 
                 <button
                     onclick="toggleShortcuts(true)"
                     title="Modifier les raccourcis clavier"
-                    class="bg-indigo-700 hover:bg-indigo-500 text-white px-4 py-2 rounded shadow text-sm font-semibold transition flex items-center gap-2 border border-indigo-500"
+                    class="bg-indigo-700 hover:bg-indigo-500 text-white px-3 py-2 rounded shadow text-sm font-semibold transition flex items-center gap-2 border border-indigo-500"
                 >
                     <svg
                         xmlns="http://www.w3.org/2000/svg"
@@ -183,13 +240,12 @@
                         <path d="m6.34 17.66-1.41 1.41" />
                         <path d="m19.07 4.93-1.41 1.41" />
                     </svg>
-                    Raccourcis
                 </button>
 
                 <button
                     onclick="toggleDoc(true)"
                     title="Ouvrir le guide d'utilisation"
-                    class="bg-indigo-700 hover:bg-indigo-500 text-white px-4 py-2 rounded shadow text-sm font-semibold transition flex items-center gap-2 border border-indigo-500"
+                    class="bg-indigo-700 hover:bg-indigo-500 text-white px-3 py-2 rounded shadow text-sm font-semibold transition flex items-center gap-2 border border-indigo-500"
                 >
                     <svg
                         xmlns="http://www.w3.org/2000/svg"
@@ -205,7 +261,6 @@
                         <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
                         <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
                     </svg>
-                    Documentation
                 </button>
 
                 <input
@@ -216,7 +271,8 @@
                 />
                 <button
                     onclick="document.getElementById('file-input').click()"
-                    class="bg-indigo-500 hover:bg-indigo-400 text-white px-4 py-2 rounded shadow text-sm font-semibold transition flex items-center gap-2"
+                    title="Charger PNG (et son graphe embarqué)"
+                    class="bg-indigo-500 hover:bg-indigo-400 text-white px-3 py-2 rounded shadow text-sm font-semibold transition flex items-center gap-2"
                 >
                     <svg
                         xmlns="http://www.w3.org/2000/svg"
@@ -233,25 +289,27 @@
                         <polyline points="7 10 12 15 17 10" />
                         <line x1="12" y1="15" x2="12" y2="3" />
                     </svg>
-                    Charger PNG
+                    <span class="hidden md:inline">PNG</span>
                 </button>
 
                 <div class="flex bg-indigo-800 rounded shadow">
                     <select
                         id="export-bg"
                         class="bg-transparent text-white pl-3 pr-2 py-2 text-sm font-semibold outline-none cursor-pointer border-r border-indigo-600 hover:bg-indigo-700 transition rounded-l"
+                        title="Fond de l'export"
                     >
                         <option value="#ffffff" class="text-slate-800">
-                            ⬜ Blanc
+                            ⬜
                         </option>
                         <option value="transparent" class="text-slate-800">
-                            🏁 Transparent
+                            🏁
                         </option>
                     </select>
                     <button
                         id="btn-export"
                         onclick="exportGraphToPNG()"
-                        class="hover:bg-indigo-900 text-white px-4 py-2 rounded-r text-sm font-semibold transition flex items-center gap-2"
+                        title="Exporter en PNG"
+                        class="hover:bg-indigo-900 text-white px-3 py-2 rounded-r text-sm font-semibold transition flex items-center gap-2"
                     >
                         <svg
                             xmlns="http://www.w3.org/2000/svg"
@@ -275,23 +333,25 @@
                             <circle cx="8.5" cy="8.5" r="1.5" />
                             <polyline points="21 15 16 10 5 21" />
                         </svg>
-                        Exporter
+                        <span class="hidden md:inline">Exporter</span>
                     </button>
                 </div>
             </div>
         </header>
 
-        <main class="flex-1 flex overflow-hidden">
+        <main class="flex-1 flex overflow-hidden flex-row">
             <!-- Panneau de gauche : Éditeur -->
             <div
-                class="w-1/3 min-w-[350px] border-r border-slate-300 bg-white flex flex-col shadow-lg z-10"
+                id="left-panel"
+                class="min-w-[250px] border-r border-slate-300 bg-white flex flex-col shadow-lg z-10 shrink-0"
+                style="width: 33.33%"
             >
                 <div
-                    class="bg-slate-100 p-2 border-b border-slate-200 text-xs font-semibold text-slate-500 uppercase tracking-wider flex justify-between"
+                    class="bg-slate-100 p-2 border-b border-slate-200 text-xs font-semibold text-slate-500 uppercase tracking-wider flex justify-between shrink-0"
                 >
                     <span>Code source</span>
-                    <span class="text-slate-400"
-                        >Ctrl + S pour sauvegarder</span
+                    <span class="text-slate-400 hidden xl:inline"
+                        >Ctrl + S = Sauvegarder</span
                     >
                 </div>
                 <div
@@ -308,31 +368,22 @@
                         spellcheck="false"
                         class="absolute inset-0 p-4 m-0 w-full h-full font-mono text-sm leading-normal whitespace-pre-wrap break-words resize-none bg-transparent text-transparent caret-indigo-600 focus:outline-none border-none focus:ring-0 z-10"
                         style="tab-size: 4"
-                    >
-// Graphique d'état personnalisé
-// Transitions  : Source -> Cible : $LaTeX$
-// État initial : [*] -> Cible
-// Couleurs     : color NomEtat #hexadecimal
-// Sortie état  : output Etat : $Sortie$
-
-color Idle #a7f3d0
-color Done #fecaca
-
-[*] -> Idle : $\text{Reset}$
-Idle -> GenLow : $GO$
-GenLow -> GenLow : $\overline{GO}$
-GenLow -> GenHigh : $\text{reset}$
-GenHigh -> GenHigh : $\overline{\text{CPT\_DONE}}$
-GenHigh -> Done : $\overline{GO} \land \text{CPT\_DONE}$
-Done -> GenLow : $GO$
-Done -> Done : $\overline{GO}$
-</textarea
-                    >
+                    ></textarea>
                 </div>
             </div>
 
+            <!-- Resizer pour redimensionner -->
+            <div
+                id="resizer"
+                class="w-1.5 bg-slate-200 hover:bg-indigo-400 cursor-col-resize z-20 transition-colors shrink-0 border-r border-slate-300"
+                title="Glisser pour redimensionner"
+            ></div>
+
             <!-- Panneau de droite : Canevas -->
-            <div id="canvas-container" class="flex-1 relative overflow-hidden">
+            <div
+                id="canvas-container"
+                class="flex-1 relative overflow-hidden bg-slate-50"
+            >
                 <div
                     id="canvas-content"
                     class="absolute inset-0 w-full h-full transform-gpu"
@@ -369,13 +420,101 @@ Done -> Done : $\overline{GO}$
                         class="absolute inset-0 w-full h-full pointer-events-none"
                     ></div>
                 </div>
+
+                <!-- Contrôles de Zoom -->
+                <div
+                    class="absolute bottom-6 right-6 bg-white border border-slate-200 shadow-lg rounded-lg flex items-center p-1 z-20"
+                >
+                    <button
+                        onclick="handleZoomBtn(-1)"
+                        class="w-8 h-8 flex items-center justify-center hover:bg-slate-100 rounded text-slate-600 font-bold text-lg"
+                        title="Dézoomer"
+                    >
+                        -
+                    </button>
+                    <span
+                        id="zoom-label"
+                        class="text-xs font-mono w-14 text-center text-slate-600 font-semibold cursor-pointer hover:text-indigo-600"
+                        onclick="resetZoomPan()"
+                        title="Réinitialiser la vue"
+                        >100%</span
+                    >
+                    <button
+                        onclick="handleZoomBtn(1)"
+                        class="w-8 h-8 flex items-center justify-center hover:bg-slate-100 rounded text-slate-600 font-bold text-lg"
+                        title="Zoomer"
+                    >
+                        +
+                    </button>
+                </div>
             </div>
         </main>
 
         <!-- Modales -->
+
+        <!-- Modal : Gestion des Graphes -->
+        <div
+            id="graphs-modal"
+            class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4 transition-opacity duration-300 opacity-0"
+            onclick="if (event.target === this) toggleGraphs(false);"
+        >
+            <div
+                id="graphs-container"
+                class="bg-white rounded-xl shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col transform scale-95 transition-transform duration-300"
+            >
+                <div
+                    class="flex justify-between items-center p-6 border-b border-slate-200 bg-slate-50 rounded-t-xl"
+                >
+                    <h2
+                        class="text-2xl font-bold text-slate-800 flex items-center gap-3"
+                    >
+                        <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="24"
+                            height="24"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            class="text-indigo-600"
+                        >
+                            <path
+                                d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"
+                            />
+                        </svg>
+                        Gestionnaire de Graphes
+                    </h2>
+                    <div class="flex items-center gap-4">
+                        <button
+                            onclick="createNewGraph()"
+                            class="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded shadow text-sm font-semibold transition flex items-center gap-2"
+                        >
+                            + Nouveau
+                        </button>
+                        <button
+                            onclick="toggleGraphs(false)"
+                            class="p-2 rounded-full hover:bg-slate-200 transition text-slate-500 hover:text-slate-800"
+                        >
+                            ✕
+                        </button>
+                    </div>
+                </div>
+                <div
+                    class="p-2 overflow-y-auto flex-1 flex flex-col bg-slate-50/50"
+                    id="graphs-list"
+                >
+                    <!-- Dynamically populated -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal : Doc -->
         <div
             id="doc-modal"
             class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4 transition-opacity duration-300 opacity-0"
+            onclick="if (event.target === this) toggleDoc(false);"
         >
             <div
                 id="doc-container"
@@ -408,9 +547,11 @@ Done -> Done : $\overline{GO}$
             </div>
         </div>
 
+        <!-- Modal : Raccourcis -->
         <div
             id="shortcuts-modal"
             class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4 transition-opacity duration-300 opacity-0"
+            onclick="if (event.target === this) toggleShortcuts(false);"
         >
             <div
                 id="shortcuts-container"
@@ -434,7 +575,10 @@ Done -> Done : $\overline{GO}$
         </div>
 
         <script>
-            // --- ÉTAT ET CONFIGURATION ---
+            // --- GESTION MULTI-GRAPHES & ETAT ---
+            let currentGraphId = "default";
+            let savedGraphs = {};
+
             let state = {
                 nodes: {},
                 edges: [],
@@ -448,6 +592,7 @@ Done -> Done : $\overline{GO}$
                 isPanning = false;
             let panX = 0,
                 panY = 0,
+                zoom = 1, // Nouvel état du zoom
                 lastMouseX = 0,
                 lastMouseY = 0,
                 isInitialized = false;
@@ -457,14 +602,32 @@ Done -> Done : $\overline{GO}$
                 typingTimer = null,
                 recordingAction = null;
 
-            // Positions calées sur l'image image_88752b.jpg
-            const initialPositions = {
-                "[*]": { x: 100, y: 150 },
-                Idle: { x: 250, y: 200 },
-                GenLow: { x: 600, y: 180 },
-                Done: { x: 220, y: 500 },
-                GenHigh: { x: 550, y: 600 },
-            };
+            // Variables du resizer
+            const resizer = document.getElementById("resizer");
+            const leftPanel = document.getElementById("left-panel");
+            let isResizingLeftPanel = false;
+
+            // Positions initiales dynamiques (réinitialisées au changement de graphe)
+            let initialPositions = {};
+
+            const DEFAULT_GRAPH_CODE = `// Graphique d'état personnalisé
+// Transitions  : Source -> Cible : $LaTeX$
+// État initial : [*] -> Cible
+// Couleurs     : color NomEtat #hexadecimal
+// Sortie état  : output Etat : $Sortie$
+
+color Idle #a7f3d0
+color Done #fecaca
+
+[*] -> Idle : $\\text{Reset}$
+Idle -> GenLow : $GO$
+GenLow -> GenLow : $\\overline{GO}$
+GenLow -> GenHigh : $\\text{reset}$
+GenHigh -> GenHigh : $\\overline{\\text{CPT\\_DONE}}$
+GenHigh -> Done : $\\overline{GO} \\land \\text{CPT\\_DONE}$
+Done -> GenLow : $GO$
+Done -> Done : $\\overline{GO}$
+`;
 
             let defaultShortcuts = {
                 undo: {
@@ -542,7 +705,15 @@ Done -> Done : $\overline{GO}$
                 JSON.parse(localStorage.getItem("latex_graph_shortcuts")) ||
                 defaultShortcuts;
 
-            // --- FONCTIONS SYSTÈME ---
+            // --- FONCTIONS SYSTÈME ET MULTI-GRAPHES ---
+
+            function updateCurrentGraphNameDisplay() {
+                const el = document.getElementById("current-graph-label");
+                if (el && savedGraphs[currentGraphId]) {
+                    el.innerHTML = `${savedGraphs[currentGraphId].name} <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="opacity-70"><path d="m6 9 6 6 6-6"/></svg>`;
+                }
+            }
+
             function getGraphStateData() {
                 const pos = {};
                 for (let id in state.nodes)
@@ -552,29 +723,218 @@ Done -> Done : $\overline{GO}$
                     nodes: pos,
                     edgeMetas: JSON.parse(JSON.stringify(state.edgeMetas)),
                     pan: { x: panX, y: panY },
+                    zoom: zoom,
                 };
             }
 
             function applyGraphStateData(data) {
-                editor.value = data.code;
+                editor.value = data.code || "";
+
+                // Nettoyage complet pour éviter le mélange de données entre les graphes
+                Object.keys(initialPositions).forEach(
+                    (k) => delete initialPositions[k],
+                );
+                Object.values(state.nodes).forEach((n) => n.el.remove());
+                state.nodes = {};
+                state.edges = [];
+
                 state.edgeMetas = JSON.parse(
                     JSON.stringify(data.edgeMetas || {}),
                 );
                 if (data.pan) {
                     panX = data.pan.x;
                     panY = data.pan.y;
-                    applyPan();
+                } else {
+                    panX = 0;
+                    panY = 0;
                 }
+                zoom = data.zoom || 1;
+                applyPan();
+
                 for (let id in data.nodes) {
-                    if (state.nodes[id]) {
-                        state.nodes[id].x = data.nodes[id].x;
-                        state.nodes[id].y = data.nodes[id].y;
-                    }
                     initialPositions[id] = data.nodes[id];
                 }
+
                 updateHighlight();
                 isInitialized = false;
                 parseCode();
+            }
+
+            function autoSaveToBrowser() {
+                if (!savedGraphs[currentGraphId]) {
+                    savedGraphs[currentGraphId] = {
+                        name: "Nouveau graphe",
+                        data: null,
+                        updatedAt: Date.now(),
+                    };
+                }
+                savedGraphs[currentGraphId].data = getGraphStateData();
+                savedGraphs[currentGraphId].updatedAt = Date.now();
+                localStorage.setItem(
+                    "latex_saved_graphs",
+                    JSON.stringify(savedGraphs),
+                );
+            }
+
+            // Gestionnaire des graphes : UI et Logique
+            function toggleGraphs(show) {
+                if (show) renderGraphsList();
+                const modal = document.getElementById("graphs-modal");
+                const container = document.getElementById("graphs-container");
+
+                modal.classList.toggle("hidden", !show);
+                if (show) {
+                    void modal.offsetWidth; // Force reflow
+                    modal.classList.remove("opacity-0");
+                    container.classList.remove("scale-95");
+                } else {
+                    modal.classList.add("opacity-0");
+                    container.classList.add("scale-95");
+                }
+            }
+
+            function renderGraphsList() {
+                const list = document.getElementById("graphs-list");
+                list.innerHTML = "";
+
+                // Tri par date de modification décroissante
+                const sorted = Object.entries(savedGraphs).sort(
+                    (a, b) => (b[1].updatedAt || 0) - (a[1].updatedAt || 0),
+                );
+
+                sorted.forEach(([id, g]) => {
+                    const isCurrent = id === currentGraphId;
+                    const div = document.createElement("div");
+                    div.className = `flex flex-col sm:flex-row justify-between sm:items-center p-4 mb-2 rounded-lg border ${isCurrent ? "bg-indigo-50 border-indigo-200" : "bg-white border-slate-200 hover:border-indigo-300 shadow-sm"} transition`;
+
+                    const dateObj = g.updatedAt ? new Date(g.updatedAt) : null;
+                    const dateStr = dateObj
+                        ? dateObj.toLocaleDateString("fr-FR") +
+                          " à " +
+                          dateObj.toLocaleTimeString("fr-FR", {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                          })
+                        : "Inconnu";
+
+                    div.innerHTML = `
+                        <div class="flex flex-col mb-3 sm:mb-0">
+                            <span class="font-bold text-lg ${isCurrent ? "text-indigo-700" : "text-slate-800"}">${g.name} ${isCurrent ? '<span class="text-xs bg-indigo-200 text-indigo-800 px-2 py-0.5 rounded ml-2 align-middle">Actif</span>' : ""}</span>
+                            <span class="text-xs text-slate-500 mt-1">Dernière modification : ${dateStr}</span>
+                        </div>
+                        <div class="flex gap-2">
+                            ${!isCurrent ? `<button onclick="loadGraph('${id}')" class="px-3 py-1.5 bg-indigo-100 text-indigo-700 hover:bg-indigo-200 hover:text-indigo-800 rounded text-sm font-semibold transition">Ouvrir</button>` : ""}
+                            <button onclick="renameGraphPrompt('${id}')" class="px-3 py-1.5 bg-slate-100 text-slate-700 hover:bg-slate-200 rounded text-sm font-semibold transition">Renommer</button>
+                            ${Object.keys(savedGraphs).length > 1 ? `<button onclick="deleteGraph('${id}')" class="px-3 py-1.5 bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-700 rounded text-sm font-semibold transition">Supprimer</button>` : ""}
+                        </div>
+                    `;
+                    list.appendChild(div);
+                });
+            }
+
+            function createNewGraph() {
+                autoSaveToBrowser(); // Sauvegarde l'actuel avant de créer
+
+                const id = "graph_" + Date.now();
+                savedGraphs[id] = {
+                    name: "Nouveau graphe",
+                    data: null,
+                    updatedAt: Date.now(),
+                };
+
+                currentGraphId = id;
+                localStorage.setItem("latex_current_graph_id", id);
+
+                // Texte par défaut pour un nouveau graphe
+                editor.value = `// Nouveau graphique d'état
+color Init #e2e8f0
+
+[*] -> Init : $\\text{start}$
+`;
+                // Nettoyage radical
+                Object.keys(initialPositions).forEach(
+                    (k) => delete initialPositions[k],
+                );
+                Object.values(state.nodes).forEach((n) => n.el.remove());
+                state.nodes = {};
+                state.edgeMetas = {};
+                panX = 0;
+                panY = 0;
+                zoom = 1;
+                applyPan();
+                undoHistory.length = 0;
+                redoHistory.length = 0;
+
+                updateHighlight();
+                isInitialized = false;
+                parseCode();
+                autoSaveToBrowser(); // Première sauvegarde
+
+                updateCurrentGraphNameDisplay();
+                renderGraphsList();
+                toggleGraphs(false);
+            }
+
+            function loadGraph(id) {
+                autoSaveToBrowser(); // Sauve avant de switcher
+                currentGraphId = id;
+                localStorage.setItem("latex_current_graph_id", id);
+
+                undoHistory.length = 0;
+                redoHistory.length = 0;
+
+                if (savedGraphs[id] && savedGraphs[id].data) {
+                    applyGraphStateData(savedGraphs[id].data);
+                } else {
+                    editor.value = "";
+                    parseCode();
+                }
+
+                updateCurrentGraphNameDisplay();
+                toggleGraphs(false);
+            }
+
+            function renameGraphPrompt(id) {
+                const newName = prompt(
+                    "Nouveau nom pour ce graphe :",
+                    savedGraphs[id].name,
+                );
+                if (newName && newName.trim()) {
+                    savedGraphs[id].name = newName.trim();
+                    savedGraphs[id].updatedAt = Date.now();
+                    localStorage.setItem(
+                        "latex_saved_graphs",
+                        JSON.stringify(savedGraphs),
+                    );
+                    renderGraphsList();
+                    if (id === currentGraphId) updateCurrentGraphNameDisplay();
+                }
+            }
+
+            function deleteGraph(id) {
+                if (
+                    confirm(
+                        `Voulez-vous vraiment supprimer définitivement le graphe "${savedGraphs[id].name}" ?`,
+                    )
+                ) {
+                    delete savedGraphs[id];
+                    localStorage.setItem(
+                        "latex_saved_graphs",
+                        JSON.stringify(savedGraphs),
+                    );
+
+                    if (id === currentGraphId) {
+                        // Bascule vers le premier graphe disponible
+                        const firstAvailable = Object.keys(savedGraphs)[0];
+                        if (firstAvailable) {
+                            loadGraph(firstAvailable);
+                        } else {
+                            createNewGraph();
+                        }
+                    } else {
+                        renderGraphsList();
+                    }
+                }
             }
 
             function saveStateForUndo() {
@@ -603,6 +963,91 @@ Done -> Done : $\overline{GO}$
                     e.altKey === sc.alt
                 );
             }
+
+            // --- INITIALISATION (LOAD) ---
+            window.addEventListener("load", () => {
+                // Migration depuis l'ancien système de sauvegarde unique vers le multigraphique
+                let storedGraphs = localStorage.getItem("latex_saved_graphs");
+                if (storedGraphs) {
+                    try {
+                        savedGraphs = JSON.parse(storedGraphs);
+                    } catch (e) {
+                        savedGraphs = {};
+                    }
+                } else {
+                    const oldSave = localStorage.getItem(
+                        "latex_state_graph_save",
+                    );
+                    if (oldSave) {
+                        try {
+                            savedGraphs = {
+                                default: {
+                                    name: "Mon Premier Graphe",
+                                    data: JSON.parse(oldSave),
+                                    updatedAt: Date.now(),
+                                },
+                            };
+                            localStorage.setItem(
+                                "latex_saved_graphs",
+                                JSON.stringify(savedGraphs),
+                            );
+                        } catch (e) {}
+                    }
+                }
+
+                // Initialisation si complètement vide
+                if (Object.keys(savedGraphs).length === 0) {
+                    savedGraphs = {
+                        default: {
+                            name: "Graphe par défaut",
+                            data: {
+                                code: DEFAULT_GRAPH_CODE,
+                                nodes: {
+                                    "[*]": { x: 100, y: 150 },
+                                    Idle: { x: 250, y: 200 },
+                                    GenLow: { x: 600, y: 180 },
+                                    Done: { x: 220, y: 500 },
+                                    GenHigh: { x: 550, y: 600 },
+                                },
+                                edgeMetas: {},
+                                pan: { x: 0, y: 0 },
+                                zoom: 1,
+                            },
+                            updatedAt: Date.now(),
+                        },
+                    };
+                }
+
+                // Détermine le graphe actuel
+                const lastActive = localStorage.getItem(
+                    "latex_current_graph_id",
+                );
+                if (lastActive && savedGraphs[lastActive]) {
+                    currentGraphId = lastActive;
+                } else {
+                    currentGraphId = Object.keys(savedGraphs)[0];
+                }
+
+                // Application des données
+                if (
+                    savedGraphs[currentGraphId] &&
+                    savedGraphs[currentGraphId].data
+                ) {
+                    try {
+                        applyGraphStateData(savedGraphs[currentGraphId].data);
+                    } catch (e) {
+                        editor.value = DEFAULT_GRAPH_CODE;
+                        parseCode();
+                        updateHighlight();
+                    }
+                } else {
+                    editor.value = DEFAULT_GRAPH_CODE;
+                    parseCode();
+                    updateHighlight();
+                }
+
+                updateCurrentGraphNameDisplay();
+            });
 
             // --- ÉDITEUR ET RENDU ---
             const editor = document.getElementById("editor"),
@@ -892,12 +1337,97 @@ Done -> Done : $\overline{GO}$
                 edgesGroup.innerHTML = svg;
             }
 
+            // --- FONCTION DE ZOOM ET PANNING ---
             function applyPan() {
-                canvasContent.style.transform = `translate(${panX}px, ${panY}px)`;
+                canvasContent.style.transform = `translate(${panX}px, ${panY}px) scale(${zoom})`;
+                // Le background s'adapte au zoom
                 canvasContainer.style.backgroundPosition = `${panX}px ${panY}px`;
+                canvasContainer.style.backgroundSize = `${20 * zoom}px ${20 * zoom}px`;
+
+                const zoomLabel = document.getElementById("zoom-label");
+                if (zoomLabel)
+                    zoomLabel.textContent = `${Math.round(zoom * 100)}%`;
             }
 
-            // --- RACCOURCIS ---
+            function setZoomAtCenter(newZoom) {
+                const rect = canvasContainer.getBoundingClientRect();
+                const mx = rect.width / 2;
+                const my = rect.height / 2;
+                const gx = (mx - panX) / zoom;
+                const gy = (my - panY) / zoom;
+                zoom = newZoom;
+                panX = mx - gx * zoom;
+                panY = my - gy * zoom;
+                applyPan();
+                autoSaveToBrowser();
+            }
+
+            function handleZoomBtn(dir) {
+                const step = 0.2;
+                let newZoom = zoom + dir * step;
+                newZoom = Math.max(0.2, Math.min(3.0, newZoom));
+                setZoomAtCenter(newZoom);
+            }
+
+            function resetZoomPan() {
+                zoom = 1;
+                panX = 0;
+                panY = 0;
+                applyPan();
+                autoSaveToBrowser();
+            }
+
+            // Zoom à la molette
+            canvasContainer.addEventListener(
+                "wheel",
+                (e) => {
+                    e.preventDefault();
+                    const zoomFactor = 1.05;
+                    const direction = e.deltaY > 0 ? -1 : 1;
+                    const newZoom = Math.max(
+                        0.15,
+                        Math.min(
+                            4.0,
+                            zoom *
+                                (direction > 0 ? zoomFactor : 1 / zoomFactor),
+                        ),
+                    );
+
+                    if (newZoom !== zoom) {
+                        const rect = canvasContainer.getBoundingClientRect();
+                        const mx = e.clientX - rect.left;
+                        const my = e.clientY - rect.top;
+
+                        // Coordonnées dans le graphe "réel"
+                        const gx = (mx - panX) / zoom;
+                        const gy = (my - panY) / zoom;
+
+                        zoom = newZoom;
+
+                        // Ajuster le pan pour que le curseur pointe toujours sur le même point
+                        panX = mx - gx * zoom;
+                        panY = my - gy * zoom;
+
+                        applyPan();
+
+                        clearTimeout(window.zoomSaveTimer);
+                        window.zoomSaveTimer = setTimeout(
+                            autoSaveToBrowser,
+                            500,
+                        );
+                    }
+                },
+                { passive: false },
+            );
+
+            // --- REDIMENSIONNEMENT DES PANNEAUX ---
+            resizer.addEventListener("mousedown", (e) => {
+                isResizingLeftPanel = true;
+                document.body.classList.add("select-none"); // Empêche la sélection de texte
+                document.body.style.cursor = "col-resize";
+            });
+
+            // --- RACCOURCIS CLAVIER DANS L'ÉDITEUR ---
             editor.addEventListener("keydown", (e) => {
                 if (
                     e.key.length === 1 &&
@@ -1091,7 +1621,9 @@ Done -> Done : $\overline{GO}$
             canvasContainer.addEventListener("mousedown", (e) => {
                 if (
                     e.target.closest(".node") ||
-                    e.target.closest(".edge-label")
+                    e.target.closest(".edge-label") ||
+                    e.target.tagName.toLowerCase() === "button" ||
+                    e.target.id === "zoom-label"
                 )
                     return;
                 saveStateForUndo();
@@ -1111,11 +1643,22 @@ Done -> Done : $\overline{GO}$
                     lastMouseY = e.clientY;
                 }
             });
+
             window.addEventListener("mousemove", (e) => {
-                if (draggedNode) {
+                // Gestion du redimensionnement de l'éditeur
+                if (isResizingLeftPanel) {
+                    // Limites : min 250px, max (largeur fenêtre - 300px)
+                    const newWidth = Math.max(
+                        250,
+                        Math.min(e.clientX, window.innerWidth - 300),
+                    );
+                    leftPanel.style.width = `${newWidth}px`;
+                }
+                // Gestion du glisser des noeuds et labels (on divise par le zoom pour conserver la précision)
+                else if (draggedNode) {
                     const r = canvasContainer.getBoundingClientRect();
-                    draggedNode.x = e.clientX - r.left - panX;
-                    draggedNode.y = e.clientY - r.top - panY;
+                    draggedNode.x = (e.clientX - r.left - panX) / zoom;
+                    draggedNode.y = (e.clientY - r.top - panY) / zoom;
                     render();
                 } else if (draggedLabelKey) {
                     if (!state.edgeMetas[draggedLabelKey])
@@ -1126,9 +1669,9 @@ Done -> Done : $\overline{GO}$
                             labelOffsetY: 0,
                         };
                     state.edgeMetas[draggedLabelKey].labelOffsetX +=
-                        e.clientX - lastMouseX;
+                        (e.clientX - lastMouseX) / zoom;
                     state.edgeMetas[draggedLabelKey].labelOffsetY +=
-                        e.clientY - lastMouseY;
+                        (e.clientY - lastMouseY) / zoom;
                     lastMouseX = e.clientX;
                     lastMouseY = e.clientY;
                     render();
@@ -1141,9 +1684,9 @@ Done -> Done : $\overline{GO}$
                             labelOffsetY: 0,
                         };
                     state.edgeMetas[draggedEdgeKey].offsetX +=
-                        e.clientX - lastMouseX;
+                        (e.clientX - lastMouseX) / zoom;
                     state.edgeMetas[draggedEdgeKey].offsetY +=
-                        e.clientY - lastMouseY;
+                        (e.clientY - lastMouseY) / zoom;
                     lastMouseX = e.clientX;
                     lastMouseY = e.clientY;
                     render();
@@ -1155,6 +1698,7 @@ Done -> Done : $\overline{GO}$
                     applyPan();
                 }
             });
+
             window.addEventListener("mouseup", () => {
                 if (
                     draggedNode ||
@@ -1163,6 +1707,13 @@ Done -> Done : $\overline{GO}$
                     isPanning
                 )
                     autoSaveToBrowser();
+
+                if (isResizingLeftPanel) {
+                    isResizingLeftPanel = false;
+                    document.body.classList.remove("select-none");
+                    document.body.style.cursor = "";
+                }
+
                 draggedNode = null;
                 draggedEdgeKey = null;
                 draggedLabelKey = null;
@@ -1183,20 +1734,118 @@ Done -> Done : $\overline{GO}$
                 highlightBg.scrollLeft = editor.scrollLeft;
             });
 
-            window.addEventListener("load", () => {
-                const s = localStorage.getItem("latex_state_graph_save");
-                if (s)
-                    try {
-                        applyGraphStateData(JSON.parse(s));
-                    } catch (e) {
-                        parseCode();
-                        updateHighlight();
-                    }
-                else {
-                    parseCode();
-                    updateHighlight();
-                }
-            });
+            // --- CHARGEMENT DE FICHIER PNG ---
+            document
+                .getElementById("file-input")
+                .addEventListener("change", function (e) {
+                    const file = e.target.files[0];
+                    if (!file) return;
+
+                    const reader = new FileReader();
+                    reader.onload = function (ev) {
+                        const buffer = ev.target.result;
+                        const view = new Uint8Array(buffer);
+                        const marker = "___LATEX_GRAPH_DATA___";
+                        const markerBytes = new TextEncoder().encode(marker);
+                        let markerIndex = -1;
+
+                        // Recherche du marqueur en partant de la fin (car on ajoute les données à la fin du PNG)
+                        for (
+                            let i = view.length - markerBytes.length;
+                            i >= 0;
+                            i--
+                        ) {
+                            let match = true;
+                            for (let j = 0; j < markerBytes.length; j++) {
+                                if (view[i + j] !== markerBytes[j]) {
+                                    match = false;
+                                    break;
+                                }
+                            }
+                            if (match) {
+                                markerIndex = i;
+                                break;
+                            }
+                        }
+
+                        if (markerIndex !== -1) {
+                            const jsonBytes = view.slice(
+                                markerIndex + markerBytes.length,
+                            );
+                            const jsonString = new TextDecoder("utf-8").decode(
+                                jsonBytes,
+                            );
+                            try {
+                                const data = JSON.parse(jsonString);
+
+                                // Sauvegarder le graphe actuel avant de basculer
+                                autoSaveToBrowser();
+
+                                // Créer un nouveau graphe avec le nom du fichier
+                                const id = "graph_" + Date.now();
+                                let baseName = file.name
+                                    .replace(".png", "")
+                                    .replace("_latex", "")
+                                    .replace(/_/g, " ");
+                                if (!baseName || baseName.trim() === "")
+                                    baseName = "Graphe importé";
+
+                                savedGraphs[id] = {
+                                    name: baseName,
+                                    data: data,
+                                    updatedAt: Date.now(),
+                                };
+
+                                currentGraphId = id;
+                                localStorage.setItem(
+                                    "latex_current_graph_id",
+                                    id,
+                                );
+                                localStorage.setItem(
+                                    "latex_saved_graphs",
+                                    JSON.stringify(savedGraphs),
+                                );
+
+                                // Appliquer les données
+                                undoHistory.length = 0;
+                                redoHistory.length = 0;
+                                applyGraphStateData(data);
+                                updateCurrentGraphNameDisplay();
+
+                                // Notification visuelle
+                                const indicator =
+                                    document.getElementById("save-indicator");
+                                indicator.textContent = "✔ Graphe importé";
+                                indicator.classList.remove("opacity-0");
+                                setTimeout(() => {
+                                    indicator.classList.add("opacity-0");
+                                    setTimeout(
+                                        () =>
+                                            (indicator.textContent =
+                                                "✔ Sauvegardé"),
+                                        300,
+                                    );
+                                }, 2500);
+                            } catch (err) {
+                                console.error(
+                                    "Erreur de lecture du JSON embarqué :",
+                                    err,
+                                );
+                                alert(
+                                    "Erreur: Impossible de lire les données du graphe dans cette image.",
+                                );
+                            }
+                        } else {
+                            alert(
+                                "Aucune donnée de graphe trouvée. Ce fichier PNG n'a probablement pas été exporté depuis cet outil.",
+                            );
+                        }
+
+                        // Réinitialiser l'input pour permettre de recharger le même fichier
+                        e.target.value = "";
+                    };
+                    reader.readAsArrayBuffer(file);
+                });
 
             // --- UTILITAIRES ---
             function resetLayout() {
@@ -1204,19 +1853,21 @@ Done -> Done : $\overline{GO}$
                 state.edgeMetas = {};
                 panX = 0;
                 panY = 0;
+                zoom = 1;
                 applyPan();
+
                 Object.values(state.nodes).forEach((n) => n.el.remove());
                 state.nodes = {};
+                // Force la re-génération aléatoire/par défaut
+                Object.keys(initialPositions).forEach(
+                    (k) => delete initialPositions[k],
+                );
+
                 isInitialized = false;
                 parseCode();
                 autoSaveToBrowser();
             }
-            function autoSaveToBrowser() {
-                localStorage.setItem(
-                    "latex_state_graph_save",
-                    JSON.stringify(getGraphStateData()),
-                );
-            }
+
             function manualSaveFeedback() {
                 autoSaveToBrowser();
                 document
@@ -1242,6 +1893,7 @@ Done -> Done : $\overline{GO}$
                 applyGraphStateData(redoHistory.pop());
                 autoSaveToBrowser();
             }
+
             function toggleDoc(s) {
                 document
                     .getElementById("doc-modal")
@@ -1300,13 +1952,17 @@ Done -> Done : $\overline{GO}$
                 const btn = document.getElementById("btn-export"),
                     oH = btn.innerHTML;
                 btn.innerHTML = "...";
+
                 const bC = document.getElementById("export-bg").value,
                     sD = getGraphStateData(),
                     jS = JSON.stringify(sD);
+
                 let minX = Infinity,
                     minY = Infinity,
                     maxX = -Infinity,
                     maxY = -Infinity;
+
+                // Le calcul de la bbox se fait dans les coordonnées "réelles" (zoom = 1)
                 Object.values(state.nodes).forEach((n) => {
                     let r = n.radius;
                     minX = Math.min(minX, n.x - r);
@@ -1314,33 +1970,85 @@ Done -> Done : $\overline{GO}$
                     maxX = Math.max(maxX, n.x + r);
                     maxY = Math.max(maxY, n.y + r);
                 });
-                minX -= 80;
-                minY -= 80;
-                maxX += 80;
-                maxY += 80;
+
+                document.querySelectorAll(".edge-label").forEach((el) => {
+                    const left = parseFloat(el.style.left) || 0,
+                        top = parseFloat(el.style.top) || 0;
+                    // On divise par le zoom pour récupérer les dimensions de la BBox à zoom 1
+                    const w = el.offsetWidth / zoom,
+                        h = el.offsetHeight / zoom;
+                    minX = Math.min(minX, left - w / 2);
+                    minY = Math.min(minY, top - h / 2);
+                    maxX = Math.max(maxX, left + w / 2);
+                    maxY = Math.max(maxY, top + h / 2);
+                });
+
+                document.querySelectorAll(".visible-edge").forEach((path) => {
+                    try {
+                        const bbox = path.getBBox();
+                        if (bbox.width > 0 && bbox.height > 0) {
+                            minX = Math.min(minX, bbox.x);
+                            minY = Math.min(minY, bbox.y);
+                            maxX = Math.max(maxX, bbox.x + bbox.width);
+                            maxY = Math.max(maxY, bbox.y + bbox.height);
+                        }
+                    } catch (e) {}
+                });
+
+                if (minX === Infinity) {
+                    minX = 0;
+                    minY = 0;
+                    maxX = 100;
+                    maxY = 100;
+                }
+
+                const PADDING = 60;
+                minX -= PADDING;
+                minY -= PADDING;
+                maxX += PADDING;
+                maxY += PADDING;
+
                 let eW = maxX - minX,
                     eH = maxY - minY,
                     oPX = panX,
-                    oPY = panY;
+                    oPY = panY,
+                    oZ = zoom;
+
+                // On force le zoom à 1 pendant l'export pour avoir une image nette
+                zoom = 1;
                 panX = -minX;
                 panY = -minY;
                 applyPan();
+
                 const containerStyle = canvasContainer.style.cssText;
+                const originalBg = canvasContainer.style.backgroundImage;
+
                 canvasContainer.style.position = "fixed";
+                canvasContainer.style.left = "0";
+                canvasContainer.style.top = "0";
                 canvasContainer.style.width = `${eW}px`;
                 canvasContainer.style.height = `${eH}px`;
-                await new Promise((r) => setTimeout(r, 100));
+                canvasContainer.style.backgroundImage = "none";
+
+                await new Promise((r) => setTimeout(r, 150));
+
                 try {
                     const blob = await htmlToImage.toBlob(canvasContainer, {
-                        backgroundColor: bC,
-                        pixelRatio: 4,
+                        backgroundColor: bC === "transparent" ? null : bC,
+                        pixelRatio: 3,
                         width: eW,
                         height: eH,
+                        style: { backgroundImage: "none" },
                     });
+
+                    // Restauration
                     canvasContainer.style.cssText = containerStyle;
+                    canvasContainer.style.backgroundImage = originalBg;
+                    zoom = oZ;
                     panX = oPX;
                     panY = oPY;
                     applyPan();
+
                     const reader = new FileReader();
                     reader.onload = function (ev) {
                         const u8 = new Uint8Array(ev.target.result),
@@ -1357,13 +2065,15 @@ Done -> Done : $\overline{GO}$
                         a.href = URL.createObjectURL(
                             new Blob([nB], { type: "image/png" }),
                         );
-                        a.download = "graphe_latex.png";
+                        a.download = `${savedGraphs[currentGraphId].name.replace(/\s+/g, "_")}_latex.png`;
                         a.click();
                         btn.innerHTML = oH;
                     };
                     reader.readAsArrayBuffer(blob);
                 } catch (err) {
                     canvasContainer.style.cssText = containerStyle;
+                    canvasContainer.style.backgroundImage = originalBg;
+                    zoom = oZ;
                     panX = oPX;
                     panY = oPY;
                     applyPan();
