@@ -1096,6 +1096,8 @@ color Init #e2e8f0
                 state.colors = {};
                 state.outputs = {};
 
+                labelsContainer.innerHTML = ""; // Vider les anciens labels avant de re-parser
+
                 lines.forEach((l) => {
                     l = l.trim();
                     if (!l || l.startsWith("//")) return;
@@ -1120,11 +1122,43 @@ color Init #e2e8f0
                     if (tM) {
                         newNodesSet.add(tM[1]);
                         newNodesSet.add(tM[2]);
+                        const key = `${tM[1]}->${tM[2]}_${newEdges.length}`;
+
+                        let labelEl = null;
+                        if (tM[3]) {
+                            labelEl = document.createElement("div");
+                            labelEl.className = "edge-label";
+                            if (tM[3].includes("$") && window.katex) {
+                                try {
+                                    katex.render(
+                                        tM[3].replace(/\$/g, ""),
+                                        labelEl,
+                                        {
+                                            throwOnError: false,
+                                        },
+                                    );
+                                } catch (e) {
+                                    labelEl.textContent = tM[3];
+                                }
+                            } else {
+                                labelEl.textContent = tM[3];
+                            }
+                            labelEl.addEventListener("mousedown", (ev) => {
+                                ev.stopPropagation();
+                                saveStateForUndo();
+                                draggedLabelKey = key;
+                                lastMouseX = ev.clientX;
+                                lastMouseY = ev.clientY;
+                            });
+                            labelsContainer.appendChild(labelEl);
+                        }
+
                         newEdges.push({
                             source: tM[1],
                             target: tM[2],
                             label: tM[3] || "",
-                            key: `${tM[1]}->${tM[2]}_${newEdges.length}`,
+                            key: key,
+                            labelEl: labelEl,
                         });
                     }
                 });
@@ -1161,40 +1195,31 @@ color Init #e2e8f0
                         nO = { id, x, y, el, radius: id === "[*]" ? 4 : 47 };
                         state.nodes[id] = nO;
                     }
+
                     if (id !== "[*]") {
                         nO.el.style.backgroundColor =
                             state.colors[id] || "#e0e7ff";
                         nO.el.innerHTML = "";
                         const outs = state.outputs[id];
-                        let diam = 90;
+
+                        // 1. Préparation pour la mesure
+                        nO.el.style.width = "auto";
+                        nO.el.style.height = "auto";
+                        nO.el.style.minWidth = "min-content";
+                        nO.el.style.padding = "20px"; // Padding généreux temporaire pour éviter que ça touche les bords du futur cercle
+
                         if (outs && outs.length > 0) {
-                            let maxL = id.length;
-                            outs.forEach(
-                                (o) =>
-                                    (maxL = Math.max(
-                                        maxL,
-                                        o.replace(/\$/g, "").length,
-                                    )),
-                            );
-                            diam = Math.max(
-                                90,
-                                maxL * 8.5,
-                                50 + outs.length * 22,
-                            );
-                            nO.radius = diam / 2 + 2;
-                            nO.el.style.width =
-                                nO.el.style.height = `${diam}px`;
                             nO.el.classList.add("flex-col");
-                            nO.el.style.padding = "0";
                             const nD = document.createElement("div");
                             nD.className =
-                                "w-full flex-1 flex items-end justify-center pb-[4px] font-bold text-[14px]";
+                                "w-full flex-1 flex items-end justify-center pb-[4px] font-bold text-[16px] whitespace-nowrap";
                             nD.textContent = id;
                             const oC = document.createElement("div");
                             oC.className =
-                                "w-[90%] flex-1 flex flex-col items-center justify-start border-t border-slate-500 pt-[4px] text-[12px] leading-tight";
+                                "w-[90%] flex-1 flex flex-col items-center justify-start border-t border-slate-500/50 pt-[4px] text-[14px] leading-tight whitespace-nowrap gap-1";
                             outs.forEach((o) => {
                                 const l = document.createElement("div");
+                                l.className = "whitespace-nowrap py-0.5";
                                 if (o.includes("$") && window.katex) {
                                     try {
                                         katex.render(o.replace(/\$/g, ""), l, {
@@ -1209,15 +1234,32 @@ color Init #e2e8f0
                             nO.el.appendChild(nD);
                             nO.el.appendChild(oC);
                         } else {
-                            diam = Math.max(90, id.length * 12);
-                            nO.radius = diam / 2;
-                            nO.el.style.width =
-                                nO.el.style.height = `${diam}px`;
                             nO.el.classList.remove("flex-col");
                             nO.el.textContent = id;
-                            nO.el.style.padding = "5px";
                             nO.el.style.fontSize = "16px";
+                            nO.el.style.whiteSpace = "nowrap";
                         }
+
+                        // 2. Lecture des dimensions réelles du contenu dessiné
+                        const contentW = nO.el.offsetWidth;
+                        const contentH = nO.el.offsetHeight;
+
+                        // 3. Calcul par Pythagore pour créer un cercle qui englobe parfaitement le contenu
+                        // On circonscrit le rectangle englobant du texte (avec les 20px de padding inclus)
+                        const diam = Math.max(
+                            90,
+                            Math.ceil(
+                                Math.sqrt(
+                                    contentW * contentW + contentH * contentH,
+                                ),
+                            ),
+                        );
+
+                        // Application de la taille finale au cercle
+                        nO.radius = diam / 2;
+                        nO.el.style.width = `${diam}px`;
+                        nO.el.style.height = `${diam}px`;
+                        nO.el.style.padding = "0"; // Flexbox se chargera de centrer parfaitement le contenu
                     }
                 });
                 state.edges = newEdges;
@@ -1231,7 +1273,7 @@ color Init #e2e8f0
                     n.el.style.top = `${n.y}px`;
                 });
                 let svg = "";
-                labelsContainer.innerHTML = "";
+
                 state.edges.forEach((e) => {
                     const n1 = state.nodes[e.source],
                         n2 = state.nodes[e.target];
@@ -1310,28 +1352,10 @@ color Init #e2e8f0
                             (meta.labelOffsetY || 0);
                     }
                     svg += `<g class="edge-group"><path d="${p}" fill="none" stroke="transparent" stroke-width="25" data-edge-key="${e.key}" style="pointer-events: stroke; cursor: grab;"></path><path d="${p}" fill="none" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)" class="visible-edge" style="pointer-events: none;"></path></g>`;
-                    if (e.label) {
-                        const l = document.createElement("div");
-                        l.className = "edge-label";
-                        l.style.left = `${lx}px`;
-                        l.style.top = `${ly}px`;
-                        l.addEventListener("mousedown", (ev) => {
-                            ev.stopPropagation();
-                            saveStateForUndo();
-                            draggedLabelKey = e.key;
-                            lastMouseX = ev.clientX;
-                            lastMouseY = ev.clientY;
-                        });
-                        if (e.label.includes("$") && window.katex) {
-                            try {
-                                katex.render(e.label.replace(/\$/g, ""), l, {
-                                    throwOnError: false,
-                                });
-                            } catch (err) {
-                                l.textContent = e.label;
-                            }
-                        } else l.textContent = e.label;
-                        labelsContainer.appendChild(l);
+
+                    if (e.labelEl) {
+                        e.labelEl.style.left = `${lx}px`;
+                        e.labelEl.style.top = `${ly}px`;
                     }
                 });
                 edgesGroup.innerHTML = svg;
