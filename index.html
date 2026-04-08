@@ -423,6 +423,7 @@
 
                 <!-- Contrôles de Zoom -->
                 <div
+                    id="zoom-controls"
                     class="absolute bottom-6 right-6 bg-white border border-slate-200 shadow-lg rounded-lg flex items-center p-1 z-20"
                 >
                     <button
@@ -2054,6 +2055,9 @@ color Init #e2e8f0
                 canvasContainer.style.height = `${eH}px`;
                 canvasContainer.style.backgroundImage = "none";
 
+                const zoomControls = document.getElementById("zoom-controls");
+                if (zoomControls) zoomControls.style.display = "none";
+
                 await new Promise((r) => setTimeout(r, 150));
 
                 try {
@@ -2068,6 +2072,7 @@ color Init #e2e8f0
                     // Restauration
                     canvasContainer.style.cssText = containerStyle;
                     canvasContainer.style.backgroundImage = originalBg;
+                    if (zoomControls) zoomControls.style.display = "";
                     zoom = oZ;
                     panX = oPX;
                     panY = oPY;
@@ -2097,6 +2102,7 @@ color Init #e2e8f0
                 } catch (err) {
                     canvasContainer.style.cssText = containerStyle;
                     canvasContainer.style.backgroundImage = originalBg;
+                    if (zoomControls) zoomControls.style.display = "";
                     zoom = oZ;
                     panX = oPX;
                     panY = oPY;
